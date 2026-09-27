@@ -163,7 +163,14 @@ struct ScanningView: View {
             let newVersion = ProjectVersion(
                 scanDate: Date(),
                 progressPercentage: 100, // Updating the placeholder default to 100% instead of 50%
-                usdzFilePath: usdzURL.path
+                usdzFilePath: {
+                    let docDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+                    let fullPath = usdzURL.path
+                    if fullPath.hasPrefix(docDir.path) {
+                        return String(fullPath.dropFirst(docDir.path.count + 1))
+                    }
+                    return usdzURL.lastPathComponent
+                }()
             )
             
             project.versions.append(newVersion)
