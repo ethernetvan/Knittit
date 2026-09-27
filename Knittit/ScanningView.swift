@@ -1,5 +1,7 @@
 import SwiftUI
+#if !targetEnvironment(simulator)
 import RealityKit
+#endif
 import SwiftData
 
 struct ScanningView: View {
@@ -13,15 +15,29 @@ struct ScanningView: View {
     
     var body: some View {
         ZStack {
-            if let session = manager.session {
-                ObjectCaptureView(session: session)
-                    .ignoresSafeArea()
+            if let provider = manager.sessionProvider {
+                
+                #if targetEnvironment(simulator)
+                Color.black.ignoresSafeArea()
+                VStack {
+                    Text("Simulator Capture Mock")
+                        .font(.largeTitle)
+                        .foregroundColor(.white)
+                    Text("State: \(String(describing: manager.captureState))")
+                        .foregroundColor(.gray)
+                }
+                #else
+                if let objectSession = provider.objectCaptureSession {
+                    ObjectCaptureView(session: objectSession)
+                        .ignoresSafeArea()
+                }
+                #endif
                 
                 VStack {
                     Spacer()
                     
                     // State handling
-                    if case .ready = session.state {
+                    if case .ready = manager.captureState {
                         Button {
                             manager.startDetecting()
                         } label: {
@@ -34,7 +50,7 @@ struct ScanningView: View {
                                 .cornerRadius(12)
                         }
                         .padding()
-                    } else if case .detecting = session.state {
+                    } else if case .detecting = manager.captureState {
                         Button {
                             manager.startCapturing()
                         } label: {
@@ -47,7 +63,7 @@ struct ScanningView: View {
                                 .cornerRadius(12)
                         }
                         .padding()
-                    } else if case .capturing = session.state {
+                    } else if case .capturing = manager.captureState {
                         Button {
                             manager.finishCapture()
                         } label: {
@@ -60,13 +76,13 @@ struct ScanningView: View {
                                 .cornerRadius(12)
                         }
                         .padding()
-                    } else if case .finishing = session.state {
+                    } else if case .finishing = manager.captureState {
                         Text("Finishing capture...")
                             .padding()
                             .background(.ultraThinMaterial)
                             .cornerRadius(8)
                             .padding()
-                    } else if case .completed = session.state {
+                    } else if case .completed = manager.captureState {
                         Button {
                             compileModel()
                         } label: {
@@ -146,7 +162,7 @@ struct ScanningView: View {
             
             let newVersion = ProjectVersion(
                 scanDate: Date(),
-                progressPercentage: 50, // This could be user input
+                progressPercentage: 100, // Updating the placeholder default to 100% instead of 50%
                 usdzFilePath: usdzURL.path
             )
             

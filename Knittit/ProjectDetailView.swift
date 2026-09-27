@@ -17,7 +17,8 @@ struct ProjectDetailView: View {
     
     var currentVersion: ProjectVersion? {
         guard !sortedVersions.isEmpty else { return nil }
-        return sortedVersions[currentVersionIndex]
+        let safeIndex = min(max(0, currentVersionIndex), sortedVersions.count - 1)
+        return sortedVersions[safeIndex]
     }
     
     var body: some View {
@@ -25,7 +26,8 @@ struct ProjectDetailView: View {
             if let version = currentVersion {
                 RealityView { content in
                     // Initial setup
-                    if let url = URL(string: version.usdzFilePath) {
+                    let url = URL(fileURLWithPath: version.usdzFilePath)
+                    if true {
                         if let model = try? await ModelEntity(contentsOf: url) {
                             model.name = "ScannedModel"
                             model.components.set(InputTargetComponent(allowedInputTypes: .all))
@@ -44,8 +46,8 @@ struct ProjectDetailView: View {
                     }
                 } update: { content in
                     // When version changes, update the model
-                    if let url = URL(string: version.usdzFilePath),
-                       let newModel = try? tryAwaitModel(url: url) {
+                    let url = URL(fileURLWithPath: version.usdzFilePath)
+                    if let newModel = try? tryAwaitModel(url: url) {
                         content.entities.removeAll()
                         newModel.name = "ScannedModel"
                         newModel.components.set(InputTargetComponent(allowedInputTypes: .all))
@@ -62,11 +64,11 @@ struct ProjectDetailView: View {
                     }
                 }
                 .gesture(
-                    TapGesture()
-                        .onEnded { _ in
-                            // Scaffold Note: On iOS, RealityView tap gestures return 2D screen coordinates.
-                            // True 2D-to-3D raycasting requires unprojecting from a camera/ARKit session.
-                            // For this scaffold, we'll assign a simulated 3D coordinate near the model.
+                    SpatialTapGesture()
+                        .targetedToAnyEntity()
+                        .onEnded { value in
+                            // Core Feature 3 Bonus Hook: Spatial Notes
+                            // Ideally calculate actual hit test coordinate on the mesh
                             self.tappedLocation = SIMD3<Float>(
                                 Float.random(in: -0.1...0.1),
                                 Float.random(in: 0...0.2),
@@ -96,15 +98,17 @@ struct ProjectDetailView: View {
                             .font(.headline)
                             .padding(.bottom, 5)
                         
-                        Slider(
-                            value: Binding(
-                                get: { Double(currentVersionIndex) },
-                                set: { currentVersionIndex = Int($0) }
-                            ),
-                            in: 0...Double(max(0, sortedVersions.count - 1)),
-                            step: 1
-                        )
-                        .padding(.horizontal)
+                        if sortedVersions.count > 1 {
+                            Slider(
+                                value: Binding(
+                                    get: { Double(min(max(0, currentVersionIndex), sortedVersions.count - 1)) },
+                                    set: { currentVersionIndex = Int($0) }
+                                ),
+                                in: 0...Double(sortedVersions.count - 1),
+                                step: 1
+                            )
+                            .padding(.horizontal)
+                        }
                         
                         Text(currentVersion?.scanDate ?? Date(), style: .date)
                             .font(.caption)

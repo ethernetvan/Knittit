@@ -1,18 +1,21 @@
 import Foundation
-import RealityKit
 import SwiftUI
 import Combine
 import CoreImage
 import CoreImage.CIFilterBuiltins
+import RealityKit
 
 @MainActor
 class ScanningManager: ObservableObject {
-    @Published var session: ObjectCaptureSession?
+    @Published var sessionProvider: CaptureSessionProvider?
+    @Published var captureState: CaptureSessionState = .initializing
+    
     @Published var isProcessing = false
     @Published var progress: Double = 0.0
     @Published var extractedColors: [String] = []
     
     private var captureFolder: URL?
+    private var cancellables = Set<AnyCancellable>()
     private var photogrammetrySession: PhotogrammetrySession?
     
     init() {
@@ -20,7 +23,12 @@ class ScanningManager: ObservableObject {
     }
     
     func setupSession() {
-        let newSession = ObjectCaptureSession()
+        let provider: CaptureSessionProvider
+        #if targetEnvironment(simulator)
+        provider = MockCaptureSession()
+        #else
+        provider = RealCaptureSession()
+        #endif
         
         let documentsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         let folderName = UUID().uuidString
@@ -28,30 +36,30 @@ class ScanningManager: ObservableObject {
         
         try? FileManager.default.createDirectory(at: folderURL, withIntermediateDirectories: true)
         
-        var configuration = ObjectCaptureSession.Configuration()
-        configuration.checkpointDirectory = folderURL.appendingPathComponent("Snapshots/")
-        
         self.captureFolder = folderURL
-        self.session = newSession
+        provider.setupSession(captureFolder: folderURL)
+        
+        provider.statePublisher
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] state in
+                self?.captureState = state
+            }
+            .store(in: &cancellables)
+            
+        self.sessionProvider = provider
     }
     
     func startDetecting() {
         guard let folderURL = captureFolder else { return }
-        let imagesURL = folderURL.appendingPathComponent("Images/")
-        try? FileManager.default.createDirectory(at: imagesURL, withIntermediateDirectories: true)
-        
-        var config = ObjectCaptureSession.Configuration()
-        config.checkpointDirectory = folderURL.appendingPathComponent("Snapshots/")
-        
-        session?.start(imagesDirectory: imagesURL, configuration: config)
+        sessionProvider?.startDetecting(captureFolder: folderURL)
     }
     
     func startCapturing() {
-        session?.startCapturing()
+        sessionProvider?.startCapturing()
     }
     
     func finishCapture() {
-        session?.finish()
+        sessionProvider?.finishCapture()
     }
     
     // Processes the captured images into a USDZ file using PhotogrammetrySession
@@ -61,9 +69,19 @@ class ScanningManager: ObservableObject {
         let modelURL = captureFolder.appendingPathComponent("model.usdz")
         
         isProcessing = true
+        progress = 0.0
         
         // Core Feature 1 Bonus Hook: Extract dominant colors
         extractColors(from: imagesFolder)
+        
+        #if targetEnvironment(simulator)
+        simulateModelProcessing(modelURL: modelURL, completion: completion)
+        #else
+        guard PhotogrammetrySession.isSupported else {
+            print("Photogrammetry is not supported on this device. Falling back to mock model.")
+            simulateModelProcessing(modelURL: modelURL, completion: completion)
+            return
+        }
         
         do {
             photogrammetrySession = try PhotogrammetrySession(input: imagesFolder)
@@ -94,6 +112,59 @@ class ScanningManager: ObservableObject {
             print("Photogrammetry setup failed: \(error)")
             isProcessing = false
         }
+        #endif
+    }
+    
+    private func simulateModelProcessing(modelURL: URL, completion: @escaping (URL?, [String]) -> Void) {
+        Task {
+            // Animate progress to simulate photogrammetry reconstruction
+            for step in 1...10 {
+                try? await Task.sleep(nanoseconds: 150_000_000)
+                self.progress = Double(step) / 10.0
+            }
+            
+            let finalURL: URL?
+            if let mockUSDZ = pickMockUSDZ() {
+                do {
+                    if FileManager.default.fileExists(atPath: modelURL.path) {
+                        try FileManager.default.removeItem(at: modelURL)
+                    }
+                    try FileManager.default.copyItem(at: mockUSDZ, to: modelURL)
+                    print("Mock USDZ copied from \(mockUSDZ.lastPathComponent) to \(modelURL.path)")
+                    finalURL = modelURL
+                } catch {
+                    print("Failed to copy mock USDZ: \(error)")
+                    finalURL = mockUSDZ
+                }
+            } else {
+                print("No mock USDZ files found in Data folder or bundle.")
+                finalURL = nil
+            }
+            
+            self.isProcessing = false
+            completion(finalURL, self.extractedColors)
+        }
+    }
+    
+    private func pickMockUSDZ() -> URL? {
+        let sourceDir = URL(fileURLWithPath: #file).deletingLastPathComponent().deletingLastPathComponent()
+        let dataDir = sourceDir.appendingPathComponent("Data")
+        
+        var usdzURLs: [URL] = []
+        
+        if FileManager.default.fileExists(atPath: dataDir.path) {
+            if let files = try? FileManager.default.contentsOfDirectory(at: dataDir, includingPropertiesForKeys: nil) {
+                usdzURLs.append(contentsOf: files.filter { $0.pathExtension.lowercased() == "usdz" })
+            }
+        }
+        
+        if usdzURLs.isEmpty {
+            if let bundleUSDZs = Bundle.main.urls(forResourcesWithExtension: "usdz", subdirectory: nil) {
+                usdzURLs.append(contentsOf: bundleUSDZs)
+            }
+        }
+        
+        return usdzURLs.randomElement()
     }
     
     private func extractColors(from directory: URL) {

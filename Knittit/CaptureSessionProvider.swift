@@ -1,0 +1,29 @@
+import Foundation
+import Combine
+#if !targetEnvironment(simulator)
+import RealityKit
+#endif
+
+public enum CaptureSessionState {
+    case initializing
+    case ready
+    case detecting
+    case capturing
+    case finishing
+    case completed
+}
+
+@MainActor
+public protocol CaptureSessionProvider: AnyObject {
+    var state: CaptureSessionState { get }
+    var statePublisher: AnyPublisher<CaptureSessionState, Never> { get }
+    
+    func setupSession(captureFolder: URL)
+    func startDetecting(captureFolder: URL)
+    func startCapturing()
+    func finishCapture()
+    
+    #if !targetEnvironment(simulator)
+    var objectCaptureSession: ObjectCaptureSession? { get }
+    #endif
+}
