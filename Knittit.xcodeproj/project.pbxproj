@@ -24,10 +24,55 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		CB595C593058509300A14FE2 /* Knittit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Knittit.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		CB595C683058509500A14FE2 /* KnittitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KnittitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		CB595C723058509500A14FE2 /* KnittitUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KnittitUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		CB595C593058509300A14FE2 /* Knittit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = Knittit.app; path = "/Users/ethernetvan/Documents/GitHub/Knittit/build/Debug-iphoneos/Knittit.app"; sourceTree = "<absolute>"; };
+		CB595C683058509500A14FE2 /* KnittitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; name = KnittitTests.xctest; path = "/Users/ethernetvan/Documents/GitHub/Knittit/build/Debug-iphoneos/Knittit.app/PlugIns/KnittitTests.xctest"; sourceTree = "<absolute>"; };
+		CB595C723058509500A14FE2 /* KnittitUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; name = KnittitUITests.xctest; path = "/Users/ethernetvan/Documents/GitHub/Knittit/build/Debug-iphoneos/KnittitUITests-Runner.app/PlugIns/KnittitUITests.xctest"; sourceTree = "<absolute>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		CB772C0A30689D0A008AEC82 /* Exceptions for "Data" folder in "KnittitUITests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Rock36Images/IMG_0019_A.HEIC,
+				Rock36Images/IMG_0022_A.HEIC,
+				Rock36Images/IMG_0025_A.HEIC,
+				Rock36Images/IMG_0028_A.HEIC,
+				Rock36Images/IMG_0031_A.HEIC,
+				Rock36Images/IMG_0034_A.HEIC,
+				Rock36Images/IMG_0037_A.HEIC,
+				Rock36Images/IMG_0040_A.HEIC,
+				Rock36Images/IMG_0043_A.HEIC,
+				Rock36Images/IMG_0046_A.HEIC,
+				Rock36Images/IMG_0049_A.HEIC,
+				Rock36Images/IMG_0052_A.HEIC,
+				Rock36Images/IMG_0055_B.HEIC,
+				Rock36Images/IMG_0058_B.HEIC,
+				Rock36Images/IMG_0061_B.HEIC,
+				Rock36Images/IMG_0064_B.HEIC,
+				Rock36Images/IMG_0067_B.HEIC,
+				Rock36Images/IMG_0070_B.HEIC,
+				Rock36Images/IMG_0073_B.HEIC,
+				Rock36Images/IMG_0076_B.HEIC,
+				Rock36Images/IMG_0079_B.HEIC,
+				Rock36Images/IMG_0082_B.HEIC,
+				Rock36Images/IMG_0085_B.HEIC,
+				Rock36Images/IMG_0088_B.HEIC,
+				Rock36Images/IMG_0091_C.HEIC,
+				Rock36Images/IMG_0094_C.HEIC,
+				Rock36Images/IMG_0097_C.HEIC,
+				Rock36Images/IMG_0100_C.HEIC,
+				Rock36Images/IMG_0103_C.HEIC,
+				Rock36Images/IMG_0106_C.HEIC,
+				Rock36Images/IMG_0109_C.HEIC,
+				Rock36Images/IMG_0112_C.HEIC,
+				Rock36Images/IMG_0115_C.HEIC,
+				Rock36Images/IMG_0118_C.HEIC,
+				Rock36Images/IMG_0121_C.HEIC,
+				Rock36Images/IMG_0124_C.HEIC,
+			);
+			target = CB595C713058509500A14FE2 /* KnittitUITests */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		CB595C5B3058509300A14FE2 /* Knittit */ = {
@@ -43,6 +88,14 @@
 		CB595C753058509500A14FE2 /* KnittitUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = KnittitUITests;
+			sourceTree = "<group>";
+		};
+		CB772C0930689D09008AEC82 /* Data */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				CB772C0A30689D0A008AEC82 /* Exceptions for "Data" folder in "KnittitUITests" target */,
+			);
+			path = Data;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -78,18 +131,8 @@
 				CB595C5B3058509300A14FE2 /* Knittit */,
 				CB595C6B3058509500A14FE2 /* KnittitTests */,
 				CB595C753058509500A14FE2 /* KnittitUITests */,
-				CB595C5A3058509300A14FE2 /* Products */,
+				CB772C0930689D09008AEC82 /* Data */,
 			);
-			sourceTree = "<group>";
-		};
-		CB595C5A3058509300A14FE2 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				CB595C593058509300A14FE2 /* Knittit.app */,
-				CB595C683058509500A14FE2 /* KnittitTests.xctest */,
-				CB595C723058509500A14FE2 /* KnittitUITests.xctest */,
-			);
-			name = Products;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -155,6 +198,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				CB595C753058509500A14FE2 /* KnittitUITests */,
+				CB772C0930689D09008AEC82 /* Data */,
 			);
 			name = KnittitUITests;
 			packageProductDependencies = (
@@ -196,7 +240,7 @@
 			mainGroup = CB595C503058509300A14FE2;
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
-			productRefGroup = CB595C5A3058509300A14FE2 /* Products */;
+			productRefGroup = CB595C503058509300A14FE2;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
