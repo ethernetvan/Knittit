@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import QuickLookThumbnailing
 
 struct LibraryGridView: View {
     @Query private var projects: [KnitProject]
@@ -28,6 +29,13 @@ struct LibraryGridView: View {
                             NavigationLink(destination: ProjectDetailView(project: project)) {
                                 ProjectThumbnail(project: project)
                             }
+                            .contextMenu {
+                                Button(role: .destructive) {
+                                    modelContext.delete(project)
+                                } label: {
+                                    Label("Delete Project", systemImage: "trash")
+                                }
+                            }
                         }
                     }
                     .padding()
@@ -47,6 +55,7 @@ struct LibraryGridView: View {
 
 struct ProjectThumbnail: View {
     let project: KnitProject
+    @State private var thumbnailImage: UIImage?
     
     var body: some View {
         VStack(alignment: .leading) {
@@ -55,9 +64,17 @@ struct ProjectThumbnail: View {
                     .fill(Color.secondary.opacity(0.2))
                     .aspectRatio(1, contentMode: .fit)
                 
-                Image(systemName: "cube.transparent")
-                    .font(.system(size: 40))
-                    .foregroundColor(.secondary)
+                if let img = thumbnailImage {
+                    Image(uiImage: img)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .clipShape(RoundedRectangle(cornerRadius: 15))
+                } else {
+                    Image(systemName: "cube.transparent")
+                        .font(.system(size: 40))
+                        .foregroundColor(.secondary)
+                }
             }
             
             Text(project.title)
@@ -86,6 +103,11 @@ struct ProjectThumbnail: View {
         .background(Color(uiColor: .secondarySystemGroupedBackground))
         .cornerRadius(20)
         .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: 2)
+        .task {
+            if let mostRecent = project.versions.max(by: { $0.scanDate < $1.scanDate }) {
+                thumbnailImage = await ThumbnailManager.shared.getThumbnail(for: mostRecent)
+            }
+        }
     }
 }
 
@@ -109,8 +131,6 @@ struct NewProjectView: View {
             Button("Save & Start Scanning") {
                 let newProject = KnitProject(title: title, yarnBrand: yarnBrand, toolSize: toolSize)
                 modelContext.insert(newProject)
-                // In a real flow, we would navigate directly to ScanningView for this project
-                // For simplicity here, we'll dismiss, and user can tap the new project
                 dismiss()
             }
             .disabled(title.isEmpty)
@@ -131,5 +151,79 @@ extension Color {
             green: Double((rgb & 0x00FF00) >> 8) / 255.0,
             blue: Double(rgb & 0x0000FF) / 255.0
         )
+    }
+}
+
+@MainActor
+class ThumbnailManager {
+    static let shared = ThumbnailManager()
+    private let cache = NSCache<NSString, UIImage>()
+    
+    private func getUSDZURL(for version: ProjectVersion) -> URL {
+        let path = version.usdzFilePath
+        if path.hasPrefix("/") {
+            return URL(fileURLWithPath: path)
+        } else {
+            let docDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+            return docDir.appendingPathComponent(path)
+        }
+    }
+    
+    func getThumbnail(for version: ProjectVersion) async -> UIImage? {
+        let cacheKey = version.id.uuidString as NSString
+        if let cached = cache.object(forKey: cacheKey) {
+            return cached
+        }
+        
+        let fileManager = FileManager.default
+        guard let docDir = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else { return nil }
+        let thumbURL = docDir.appendingPathComponent("\(version.id.uuidString)_thumb.png")
+        
+        if fileManager.fileExists(atPath: thumbURL.path) {
+            if let data = try? Data(contentsOf: thumbURL), let img = UIImage(data: data) {
+                cache.setObject(img, forKey: cacheKey)
+                return img
+            }
+        }
+        
+        let usdzURL = getUSDZURL(for: version)
+        
+        guard fileManager.fileExists(atPath: usdzURL.path) else {
+            return nil
+        }
+        
+        let request = QLThumbnailGenerator.Request(
+            fileAt: usdzURL,
+            size: CGSize(width: 300, height: 300),
+            scale: UIScreen.main.scale,
+            representationTypes: .thumbnail
+        )
+        
+        let generator = QLThumbnailGenerator.shared
+        
+        do {
+            let img: UIImage = try await withCheckedThrowingContinuation { continuation in
+                var resumed = false
+                generator.generateRepresentations(for: request) { thumbnail, type, error in
+                    if resumed { return }
+                    resumed = true
+                    
+                    if let img = thumbnail?.uiImage {
+                        continuation.resume(returning: img)
+                    } else {
+                        continuation.resume(throwing: error ?? NSError(domain: "ThumbError", code: 0))
+                    }
+                }
+            }
+            
+            if let data = img.pngData() {
+                try? data.write(to: thumbURL)
+            }
+            cache.setObject(img, forKey: cacheKey)
+            return img
+        } catch {
+            print("Thumbnail generation error: \(error)")
+            return nil
+        }
     }
 }

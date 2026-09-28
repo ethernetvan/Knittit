@@ -4,6 +4,8 @@ import SwiftData
 
 struct ProjectDetailView: View {
     let project: KnitProject
+    @Environment(\.modelContext) private var modelContext
+    @State private var showEditProject = false
     @State private var currentVersionIndex: Int = 0
     @State private var isExporting = false
     @State private var spatialNoteText = ""
@@ -204,16 +206,45 @@ struct ProjectDetailView: View {
         .navigationTitle(project.title)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                NavigationLink(destination: ScanningView(project: project)) {
-                    Image(systemName: "plus.viewfinder")
+                Menu {
+                    NavigationLink(destination: ScanningView(project: project)) {
+                        Label("Add Scan", systemImage: "plus.viewfinder")
+                    }
+                    Button(action: exportVideo) {
+                        Label("Export Video", systemImage: "square.and.arrow.up")
+                    }
+                    .disabled(currentVersion == nil)
+                    
+                    Button {
+                        showEditProject = true
+                    } label: {
+                        Label("Edit Project", systemImage: "pencil")
+                    }
+                    
+                    Button(role: .destructive) {
+                        if let version = currentVersion {
+                            let versionId = version.id
+                            project.versions.removeAll(where: { $0.id == versionId })
+                            modelContext.delete(version)
+                            
+                            if currentVersionIndex >= project.versions.count {
+                                currentVersionIndex = max(0, project.versions.count - 1)
+                            }
+                            
+                            try? modelContext.save()
+                        }
+                    } label: {
+                        Label("Delete Current Scan", systemImage: "trash")
+                    }
+                    .disabled(currentVersion == nil)
+                    
+                } label: {
+                    Image(systemName: "ellipsis.circle")
                 }
             }
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: exportVideo) {
-                    Image(systemName: "square.and.arrow.up")
-                }
-                .disabled(currentVersion == nil)
-            }
+        }
+        .sheet(isPresented: $showEditProject) {
+            EditProjectView(project: project)
         }
         .alert(editingNoteID == nil ? "Add Spatial Note" : "Edit Note", isPresented: $showNoteInput) {
             TextField("Note", text: $spatialNoteText)
@@ -388,6 +419,30 @@ struct ProjectDetailView: View {
         
         VideoExportManager.shared.export360Video(usdzPath: getUSDZURL(for: version).path) { success in
             isExporting = false
+        }
+    }
+}
+
+
+struct EditProjectView: View {
+    @Bindable var project: KnitProject
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section(header: Text("Project Details")) {
+                    TextField("Title", text: $project.title)
+                    TextField("Yarn Brand", text: $project.yarnBrand)
+                    TextField("Tool Size (e.g. US 8)", text: $project.toolSize)
+                }
+            }
+            .navigationTitle("Edit Project")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") { dismiss() }
+                }
+            }
         }
     }
 }
