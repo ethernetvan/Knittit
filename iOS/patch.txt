@@ -1,0 +1,48 @@
+--- Knittit/Views/SocialFeedView.swift
++++ Knittit/Views/SocialFeedView.swift
+@@ -140,32 +140,18 @@
+             }
+             
+             if let url = item.usdzUrl {
+-                Model3D(url: url) { phase in
+-                    switch phase {
+-                    case .empty:
+-                        ProgressView()
+-                            .frame(height: 300)
+-                            .frame(maxWidth: .infinity)
+-                    case .success(let resolvedModel):
+-                        resolvedModel
+-                            .resizable()
+-                            .aspectRatio(contentMode: .fit)
+-                            .frame(height: 300)
+-                            .frame(maxWidth: .infinity)
+-                            .background(Color(UIColor.secondarySystemBackground))
+-                            .cornerRadius(12)
+-                    case .failure:
+-                        VStack {
+-                            Image(systemName: "exclamationmark.triangle")
+-                            Text("Failed to load model")
+-                        }
+-                        .frame(height: 300)
+-                        .frame(maxWidth: .infinity)
+-                        .background(Color(UIColor.secondarySystemBackground))
+-                        .cornerRadius(12)
+-                    @unknown default:
+-                        EmptyView()
+-                    }
++                VStack {
++                    Image(systemName: "arkit")
++                        .resizable()
++                        .scaledToFit()
++                        .frame(height: 50)
++                        .foregroundColor(.blue)
++                    Text("Tap to View 3D Model")
++                        .font(.headline)
++                        .foregroundColor(.blue)
+                 }
++                .frame(height: 300)
++                .frame(maxWidth: .infinity)
++                .background(Color(UIColor.secondarySystemBackground))
++                .cornerRadius(12)
+             } else {
+                 Rectangle()

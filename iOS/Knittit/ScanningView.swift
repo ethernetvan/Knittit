@@ -1,189 +1,217 @@
 import SwiftUI
-#if !targetEnvironment(simulator)
 import RealityKit
-#endif
-import SwiftData
+import Supabase
 
+#if os(iOS)
+@available(iOS 17.0, *)
 struct ScanningView: View {
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
+    @State private var session = ObjectCaptureSession()
+    @State private var showWarning = true
+    @State private var captureDir: URL?
+    @State private var isProcessing = false
+    @State private var compilationProgress: Double = 0.0
+    @State private var showingSaveProject = false
+    @State private var latestUSDZURL: URL?
     
-    let project: KnitProject
-    
-    @StateObject private var manager = ScanningManager()
-    @State private var showWarningModal = true
+    var project: KnitProject? = nil
+    init(project: KnitProject? = nil) {
+        self.project = project
+    }
+    @State private var selectedProjectId: UUID?
     
     var body: some View {
         ZStack {
-            if let provider = manager.sessionProvider {
-                
-                #if targetEnvironment(simulator)
-                Color.black.ignoresSafeArea()
-                VStack {
-                    Text("Simulator Capture Mock")
-                        .font(.largeTitle)
-                        .foregroundColor(.white)
-                    Text("State: \(String(describing: manager.captureState))")
-                        .foregroundColor(.gray)
+            if isProcessing {
+                VStack(spacing: 20) {
+                    ProgressView(value: compilationProgress, total: 1.0)
+                        .progressViewStyle(.linear)
+                        .padding()
+                    
+                    Text("Compiling 3D Model...")
+                        .font(.headline)
+                    Text("\(Int(compilationProgress * 100))%")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
                 }
-                #else
-                if let objectSession = provider.objectCaptureSession {
-                    ObjectCaptureView(session: objectSession)
-                        .ignoresSafeArea()
-                }
-                #endif
+                .padding()
+                .background(Color(UIColor.systemBackground).opacity(0.8))
+                .cornerRadius(16)
+            } else {
+                ObjectCaptureView(session: session)
+                    .ignoresSafeArea()
                 
                 VStack {
                     Spacer()
                     
-                    // State handling
-                    if case .ready = manager.captureState {
-                        Button {
-                            manager.startDetecting()
-                        } label: {
-                            Text("Start Detecting")
-                                .font(.headline)
-                                .foregroundColor(.white)
-                                .padding()
-                                .frame(maxWidth: .infinity)
-                                .background(Color.blue)
-                                .cornerRadius(12)
+                    if session.state == .ready {
+                        Button("Start Detecting") {
+                            session.startDetecting()
                         }
+                        .buttonStyle(.borderedProminent)
                         .padding()
-                    } else if case .detecting = manager.captureState {
-                        Button {
-                            manager.startCapturing()
-                        } label: {
-                            Text("Start Capturing")
-                                .font(.headline)
-                                .foregroundColor(.white)
-                                .padding()
-                                .frame(maxWidth: .infinity)
-                                .background(Color.green)
-                                .cornerRadius(12)
+                    } else if session.state == .detecting {
+                        Button("Start Capturing") {
+                            session.startCapturing()
                         }
+                        .buttonStyle(.borderedProminent)
                         .padding()
-                    } else if case .capturing = manager.captureState {
-                        Button {
-                            manager.finishCapture()
-                        } label: {
-                            Text("Finish Capture")
-                                .font(.headline)
-                                .foregroundColor(.white)
-                                .padding()
-                                .frame(maxWidth: .infinity)
-                                .background(Color.red)
-                                .cornerRadius(12)
+                    } else if session.state == .capturing {
+                        Button("Finish Capture") {
+                            session.finish()
                         }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.red)
                         .padding()
-                    } else if case .finishing = manager.captureState {
-                        Text("Finishing capture...")
-                            .padding()
-                            .background(.ultraThinMaterial)
-                            .cornerRadius(8)
-                            .padding()
-                    } else if case .completed = manager.captureState {
-                        Button {
-                            compileModel()
-                        } label: {
-                            Text("Compile 3D Model")
-                                .font(.headline)
-                                .foregroundColor(.white)
-                                .padding()
-                                .frame(maxWidth: .infinity)
-                                .background(Color.purple)
-                                .cornerRadius(12)
-                        }
-                        .padding()
-                    }
-                }
-            }
-            
-            if manager.isProcessing {
-                ZStack {
-                    Color.black.opacity(0.8).ignoresSafeArea()
-                    VStack(spacing: 20) {
-                        ProgressView(value: manager.progress)
-                            .progressViewStyle(.circular)
-                            .scaleEffect(2)
-                            .tint(.white)
-                        
-                        Text("Compiling USDZ...")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                        
-                        Text("\(Int(manager.progress * 100))%")
-                            .foregroundColor(.white)
                     }
                 }
             }
         }
-        .sheet(isPresented: $showWarningModal) {
-            VStack(spacing: 30) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 60, height: 60)
-                    .foregroundColor(.orange)
-                
-                Text("Scanning Tips")
-                    .font(.title2).bold()
-                
-                Text("Place fuzzy yarn on a highly patterned, non-white background.")
-                    .font(.headline)
-                    .multilineTextAlignment(.center)
-                
-                Text("This ensures the LiDAR and photogrammetry algorithms can track spatial anchors effectively.")
-                    .multilineTextAlignment(.center)
-                    .foregroundColor(.secondary)
-                
-                Button {
-                    showWarningModal = false
-                } label: {
-                    Text("I Understand")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                        .background(Color.blue)
-                        .cornerRadius(12)
+        .onAppear {
+            setupCaptureDir()
+        }
+        .alert("Scanning Best Practices", isPresented: $showWarning) {
+            Button("I Understand", role: .cancel) {
+                if let dir = captureDir {
+                    var configuration = ObjectCaptureSession.Configuration()
+                    configuration.checkpointDirectory = dir.appendingPathComponent("Snapshots/")
+                    session.start(imagesDirectory: dir.appendingPathComponent("Images/"),
+                                  configuration: configuration)
                 }
-                .padding(.top)
             }
-            .padding()
-            .presentationDetents([.fraction(0.5)])
-            .interactiveDismissDisabled()
+        } message: {
+            Text("Place fuzzy yarn projects on a highly patterned, non-white background for proper LiDAR tracking.")
+        }
+        .onChange(of: session.state) { _, newState in
+            if newState == .completed {
+                Task {
+                    await compileModel()
+                }
+            }
+        }
+        .sheet(isPresented: $showingSaveProject) {
+            if let usdz = latestUSDZURL {
+                SaveProjectView(usdzURL: usdz)
+            }
         }
     }
     
-    private func compileModel() {
-        manager.processScan { usdzURL, colors in
-            guard let usdzURL = usdzURL else { return }
-            
-            let newVersion = ProjectVersion(
-                scanDate: Date(),
-                progressPercentage: 100, // Updating the placeholder default to 100% instead of 50%
-                usdzFilePath: {
-                    let docDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-                    let fullPath = usdzURL.path
-                    if fullPath.hasPrefix(docDir.path) {
-                        return String(fullPath.dropFirst(docDir.path.count + 1))
-                    }
-                    return usdzURL.lastPathComponent
-                }()
+    private func setupCaptureDir() {
+        let tempDir = FileManager.default.temporaryDirectory
+        let newDir = tempDir.appendingPathComponent(UUID().uuidString)
+        do {
+            try FileManager.default.createDirectory(at: newDir, withIntermediateDirectories: true)
+            self.captureDir = newDir
+        } catch {
+            print("Failed to create capture dir: \(error)")
+        }
+    }
+    
+    private func compileModel() async {
+        guard let captureDir = captureDir else { return }
+        await MainActor.run { isProcessing = true }
+        
+        let imagesDir = captureDir.appendingPathComponent("Images/")
+        let modelURL = captureDir.appendingPathComponent("model.usdz")
+        
+        do {
+            let session = try PhotogrammetrySession(
+                input: imagesDir,
+                configuration: PhotogrammetrySession.Configuration()
             )
             
-            project.versions.append(newVersion)
+            try session.process(requests: [.modelFile(url: modelURL)])
             
-            // Core Feature 1 Bonus: Add extracted colors to project
-            for color in colors {
-                if !project.colorPalette.contains(color) {
-                    project.colorPalette.append(color)
+            for try await output in session.outputs {
+                switch output {
+                case .processingComplete:
+                    await MainActor.run {
+                        self.latestUSDZURL = modelURL
+                        self.isProcessing = false
+                        self.showingSaveProject = true
+                    }
+                case .requestProgress(_, let fractionComplete):
+                    await MainActor.run {
+                        self.compilationProgress = fractionComplete
+                    }
+                case .processingCancelled:
+                    await MainActor.run { isProcessing = false }
+                case .requestError(_, let error):
+                    print("Photogrammetry Error: \(error)")
+                    await MainActor.run { isProcessing = false }
+                default:
+                    break
                 }
             }
             
-            try? modelContext.save()
-            dismiss()
+        } catch {
+            print("Failed to compile model: \(error)")
+            await MainActor.run { isProcessing = false }
         }
     }
 }
+
+@available(iOS 17.0, *)
+struct SaveProjectView: View {
+    let usdzURL: URL
+    @State private var notes = ""
+    @State private var isUploading = false
+    @Environment(\.dismiss) var dismiss
+    
+    var body: some View {
+        NavigationView {
+            Form {
+                Section("Upload Model") {
+                    if isUploading {
+                        ProgressView("Uploading to Supabase...")
+                            .frame(maxWidth: .infinity, alignment: .center)
+                    } else {
+                        TextField("Version Notes", text: $notes)
+                        
+                        Button("Save and Upload") {
+                            Task {
+                                await uploadModel()
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Save SupabaseProject")
+            .navigationBarItems(trailing: Button("Cancel") {
+                dismiss()
+            })
+        }
+    }
+    
+    private func uploadModel() async {
+        guard let user = try? await SupabaseManager.shared.client.auth.session.user else { return }
+        
+        isUploading = true
+        do {
+            let fileData = try Data(contentsOf: usdzURL)
+            let fileName = "\(UUID().uuidString).usdz"
+            
+            try await SupabaseManager.shared.client.storage
+                .from("scans")
+                .upload(fileName, data: fileData, options: FileOptions(contentType: "model/vnd.usdz+zip"))
+            
+            let publicURL = try SupabaseManager.shared.client.storage
+                .from("scans")
+                .getPublicURL(path: fileName)
+            
+            let projectId = UUID()
+            let project = SupabaseProject(id: projectId, ownerId: user.id, createdAt: Date(), title: "Scanned SupabaseProject", description: nil)
+            try await SupabaseManager.shared.client.from("projects").insert(project).execute()
+            
+            let version = SupabaseProjectVersion(id: UUID(), projectId: projectId, createdAt: Date(), usdzUrl: publicURL, versionNotes: notes)
+            try await SupabaseManager.shared.client.from("project_versions").insert(version).execute()
+            
+            isUploading = false
+            dismiss()
+            
+        } catch {
+            print("Upload failed: \(error)")
+            isUploading = false
+        }
+    }
+}
+#endif

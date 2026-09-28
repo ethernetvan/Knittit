@@ -6,6 +6,15 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		CBCCB1923069F14E00DDBC1F /* Auth in Frameworks */ = {isa = PBXBuildFile; productRef = CBCCB1913069F14E00DDBC1F /* Auth */; };
+		CBCCB1943069F14E00DDBC1F /* Functions in Frameworks */ = {isa = PBXBuildFile; productRef = CBCCB1933069F14E00DDBC1F /* Functions */; };
+		CBCCB1963069F14E00DDBC1F /* PostgREST in Frameworks */ = {isa = PBXBuildFile; productRef = CBCCB1953069F14E00DDBC1F /* PostgREST */; };
+		CBCCB1983069F14E00DDBC1F /* Realtime in Frameworks */ = {isa = PBXBuildFile; productRef = CBCCB1973069F14E00DDBC1F /* Realtime */; };
+		CBCCB19A3069F14E00DDBC1F /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = CBCCB1993069F14E00DDBC1F /* Storage */; };
+		CBCCB19C3069F14E00DDBC1F /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = CBCCB19B3069F14E00DDBC1F /* Supabase */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		CB595C693058509500A14FE2 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -27,6 +36,8 @@
 		CB595C593058509300A14FE2 /* Knittit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Knittit.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CB595C683058509500A14FE2 /* KnittitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KnittitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CB595C723058509500A14FE2 /* KnittitUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KnittitUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		CBCCB10F3069EFF500DDBC1F /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
+		CBCCB1103069EFF500DDBC1F /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -72,11 +83,21 @@
 			);
 			target = CB595C713058509500A14FE2 /* KnittitUITests */;
 		};
+		CBCCB1893069F0C900DDBC1F /* Exceptions for "Knittit" folder in "Knittit" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = CB595C583058509300A14FE2 /* Knittit */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		CB595C5B3058509300A14FE2 /* Knittit */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				CBCCB1893069F0C900DDBC1F /* Exceptions for "Knittit" folder in "Knittit" target */,
+			);
 			path = Knittit;
 			sourceTree = "<group>";
 		};
@@ -105,6 +126,12 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CBCCB1963069F14E00DDBC1F /* PostgREST in Frameworks */,
+				CBCCB1943069F14E00DDBC1F /* Functions in Frameworks */,
+				CBCCB19C3069F14E00DDBC1F /* Supabase in Frameworks */,
+				CBCCB1923069F14E00DDBC1F /* Auth in Frameworks */,
+				CBCCB19A3069F14E00DDBC1F /* Storage in Frameworks */,
+				CBCCB1983069F14E00DDBC1F /* Realtime in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -135,7 +162,17 @@
 				CB595C723058509500A14FE2 /* KnittitUITests.xctest */,
 				CB595C593058509300A14FE2 /* Knittit.app */,
 				CB595C683058509500A14FE2 /* KnittitTests.xctest */,
+				CBCCB10E3069EFF500DDBC1F /* Config */,
 			);
+			sourceTree = "<group>";
+		};
+		CBCCB10E3069EFF500DDBC1F /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				CBCCB10F3069EFF500DDBC1F /* Debug.xcconfig */,
+				CBCCB1103069EFF500DDBC1F /* Release.xcconfig */,
+			);
+			path = Config;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -158,6 +195,12 @@
 			);
 			name = Knittit;
 			packageProductDependencies = (
+				CBCCB1913069F14E00DDBC1F /* Auth */,
+				CBCCB1933069F14E00DDBC1F /* Functions */,
+				CBCCB1953069F14E00DDBC1F /* PostgREST */,
+				CBCCB1973069F14E00DDBC1F /* Realtime */,
+				CBCCB1993069F14E00DDBC1F /* Storage */,
+				CBCCB19B3069F14E00DDBC1F /* Supabase */,
 			);
 			productName = Knittit;
 			productReference = CB595C593058509300A14FE2 /* Knittit.app */;
@@ -242,6 +285,9 @@
 			);
 			mainGroup = CB595C503058509300A14FE2;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				CBCCB1903069F14E00DDBC1F /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = CB595C503058509300A14FE2;
 			projectDirPath = "";
@@ -318,6 +364,7 @@
 /* Begin XCBuildConfiguration section */
 		CB595C7A3058509500A14FE2 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = CBCCB10F3069EFF500DDBC1F /* Debug.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -383,6 +430,7 @@
 		};
 		CB595C7B3058509500A14FE2 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = CBCCB1103069EFF500DDBC1F /* Release.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -444,14 +492,16 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Knittit/Knittit.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = JLYU7BC62M;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSCameraUsageDescription = "Knittit uses the camera and LiDAR scanner to capture 3D photogrammetry models of your knit and crochet fiber art projects.";
+				INFOPLIST_FILE = Knittit/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Knittit requires access to the camera to perform 3D LiDAR scans of your yarn projects.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Knittit requires permission to save rendered 360-degree looping MP4 videos directly to your photo library.";
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Knittit needs access to your photo library to save and export 360-degree turnaround videos of your fiber art projects.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Knittit requires access to your photo library to save and load 3D project renderings.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -479,14 +529,16 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Knittit/Knittit.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = JLYU7BC62M;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSCameraUsageDescription = "Knittit uses the camera and LiDAR scanner to capture 3D photogrammetry models of your knit and crochet fiber art projects.";
+				INFOPLIST_FILE = Knittit/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Knittit requires access to the camera to perform 3D LiDAR scans of your yarn projects.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Knittit requires permission to save rendered 360-degree looping MP4 videos directly to your photo library.";
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Knittit needs access to your photo library to save and export 360-degree turnaround videos of your fiber art projects.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Knittit requires access to your photo library to save and load 3D project renderings.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -633,6 +685,50 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		CBCCB1903069F14E00DDBC1F /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase-community/supabase-swift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.5.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		CBCCB1913069F14E00DDBC1F /* Auth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CBCCB1903069F14E00DDBC1F /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Auth;
+		};
+		CBCCB1933069F14E00DDBC1F /* Functions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CBCCB1903069F14E00DDBC1F /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Functions;
+		};
+		CBCCB1953069F14E00DDBC1F /* PostgREST */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CBCCB1903069F14E00DDBC1F /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = PostgREST;
+		};
+		CBCCB1973069F14E00DDBC1F /* Realtime */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CBCCB1903069F14E00DDBC1F /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Realtime;
+		};
+		CBCCB1993069F14E00DDBC1F /* Storage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CBCCB1903069F14E00DDBC1F /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Storage;
+		};
+		CBCCB19B3069F14E00DDBC1F /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CBCCB1903069F14E00DDBC1F /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = CB595C513058509300A14FE2 /* Project object */;
 }
