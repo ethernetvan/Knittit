@@ -76,15 +76,18 @@ struct ProfileView: View {
                                 } else {
                                     LazyVGrid(columns: columns, spacing: 16) {
                                         ForEach(userProjects) { project in
-                                            VStack {
-                                                Rectangle()
-                                                    .fill(Color.secondary.opacity(0.2))
-                                                    .aspectRatio(1, contentMode: .fit)
-                                                    .cornerRadius(8)
-                                                
-                                                Text(project.title)
-                                                    .font(.caption)
-                                                    .lineLimit(1)
+                                            NavigationLink(destination: SupabaseProjectDetailView(project: project)) {
+                                                VStack {
+                                                    Rectangle()
+                                                        .fill(Color.secondary.opacity(0.2))
+                                                        .aspectRatio(1, contentMode: .fit)
+                                                        .cornerRadius(8)
+                                                    
+                                                    Text(project.title)
+                                                        .font(.caption)
+                                                        .lineLimit(1)
+                                                        .foregroundColor(.primary)
+                                                }
                                             }
                                         }
                                     }
@@ -137,7 +140,7 @@ struct ProfileView: View {
                 let projects: [SupabaseProject] = try await SupabaseManager.shared.client
                     .from("projects")
                     .select()
-                    .eq("owner_id", value: targetProfile.id)
+                    .eq("user_id", value: targetProfile.id)
                     .execute()
                     .value
                 
@@ -214,6 +217,76 @@ struct ProfileView: View {
             }
         } catch {
             print("Search failed: \(error)")
+        }
+    }
+}
+
+struct SupabaseProjectDetailView: View {
+    let project: SupabaseProject
+    @State private var versions: [SupabaseProjectVersion] = []
+    @State private var isLoading = true
+
+    var body: some View {
+        List {
+            if isLoading {
+                ProgressView("Loading versions...")
+            } else if versions.isEmpty {
+                Text("No 3D models available for this project.")
+                    .foregroundColor(.secondary)
+            } else {
+                ForEach(versions) { version in
+                    if #available(iOS 17.0, *), let path = version.usdzFilePath, let url = URL(string: path) {
+                        NavigationLink(destination: USDZViewer(url: url, title: project.title)) {
+                            VStack(alignment: .leading) {
+                                Text("Version from \(version.createdAt?.formatted() ?? "Unknown Date")")
+                                    .font(.headline)
+                                if let progress = version.progressPercentage {
+                                    Text("Progress: \(progress)%")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        }
+                    } else {
+                        VStack(alignment: .leading) {
+                            Text("Version from \(version.createdAt?.formatted() ?? "Unknown Date")")
+                                .font(.headline)
+                            if let progress = version.progressPercentage {
+                                Text("Progress: \(progress)%")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            Text("3D Model unavailable")
+                                .font(.caption)
+                                .foregroundColor(.red)
+                        }
+                    }
+                }
+            }
+        }
+        .navigationTitle(project.title)
+        .task {
+            await loadVersions()
+        }
+    }
+
+    private func loadVersions() async {
+        do {
+            let fetchedVersions: [SupabaseProjectVersion] = try await SupabaseManager.shared.client
+                .from("project_versions")
+                .select()
+                .eq("project_id", value: project.id)
+                .order("created_at", ascending: false)
+                .execute()
+                .value
+            
+            await MainActor.run {
+                self.versions = fetchedVersions
+                self.isLoading = false
+            }
+        } catch {
+            print("Error loading versions: \(error)")
+            await MainActor.run { isLoading = false }
         }
     }
 }

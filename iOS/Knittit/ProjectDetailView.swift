@@ -158,7 +158,7 @@ struct ProjectDetailView: View {
                         .font(.largeTitle)
                         .foregroundColor(.gray)
                     Text("No scans yet.")
-                    NavigationLink("Start Scanning", destination: ScanningView(project: project))
+                    NavigationLink("Start Scanning", destination: ScanningView())
                         .buttonStyle(.borderedProminent)
                         .padding()
                 }
@@ -207,7 +207,7 @@ struct ProjectDetailView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {
-                    NavigationLink(destination: ScanningView(project: project)) {
+                    NavigationLink(destination: ScanningView()) {
                         Label("Add Scan", systemImage: "plus.viewfinder")
                     }
                     Button(action: exportVideo) {

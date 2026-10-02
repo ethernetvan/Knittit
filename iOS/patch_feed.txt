@@ -1,0 +1,39 @@
+--- Knittit/Views/SocialFeedView.swift
++++ Knittit/Views/SocialFeedView.swift
+@@ -17,21 +17,29 @@
+                         Text("No projects in your feed yet.")
+                             .foregroundColor(.secondary)
+                     } else {
+                         ForEach(feedItems) { item in
+-                            FeedItemView(item: item)
+-                                .contextMenu {
+-                                    Button(role: .destructive) {
+-                                        Task { await reportItem(item) }
+-                                    } label: {
+-                                        Label("Report Post", systemImage: "exclamationmark.bubble")
++                            if #available(iOS 17.0, *), let urlStr = item.usdzFilePath, let url = URL(string: urlStr) {
++                                NavigationLink(destination: USDZViewer(url: url, title: item.projects?.title ?? "View 3D Model")) {
++                                    FeedItemView(item: item)
++                                }
++                                .buttonStyle(.plain)
++                                .contextMenu {
++                                    Button(role: .destructive) {
++                                        Task { await reportItem(item) }
++                                    } label: {
++                                        Label("Report Post", systemImage: "exclamationmark.bubble")
++                                    }
++                                }
++                            } else {
++                                FeedItemView(item: item)
++                                    .contextMenu {
++                                        Button(role: .destructive) {
++                                            Task { await reportItem(item) }
++                                        } label: {
++                                            Label("Report Post", systemImage: "exclamationmark.bubble")
++                                        }
+                                     }
+-                                }
++                            }
+                         }
+                     }
+                 }

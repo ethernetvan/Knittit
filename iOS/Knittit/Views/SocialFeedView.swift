@@ -17,7 +17,11 @@ struct SocialFeedView: View {
                             .foregroundColor(.secondary)
                     } else {
                         ForEach(feedItems) { item in
-                            FeedItemView(item: item)
+                            if #available(iOS 17.0, *), let url = item.usdzFilePath {
+                                NavigationLink(destination: USDZViewer(url: url, title: item.projects?.title ?? "View 3D Model")) {
+                                    FeedItemView(item: item)
+                                }
+                                .buttonStyle(.plain)
                                 .contextMenu {
                                     Button(role: .destructive) {
                                         Task { await reportItem(item) }
@@ -25,6 +29,16 @@ struct SocialFeedView: View {
                                         Label("Report Post", systemImage: "exclamationmark.bubble")
                                     }
                                 }
+                            } else {
+                                FeedItemView(item: item)
+                                    .contextMenu {
+                                        Button(role: .destructive) {
+                                            Task { await reportItem(item) }
+                                        } label: {
+                                            Label("Report Post", systemImage: "exclamationmark.bubble")
+                                        }
+                                    }
+                            }
                         }
                     }
                 }
@@ -103,16 +117,16 @@ struct FeedSupabaseProjectVersion: Codable, Identifiable {
     let id: UUID
     let projectId: UUID
     let createdAt: Date?
-    let usdzUrl: URL?
-    let versionNotes: String?
+    let usdzFilePath: URL?
+    let progressPercentage: Int?
     let projects: SupabaseProject?
     
     enum CodingKeys: String, CodingKey {
         case id
         case projectId = "project_id"
         case createdAt = "created_at"
-        case usdzUrl = "usdz_url"
-        case versionNotes = "version_notes"
+        case usdzFilePath = "usdz_file_path"
+        case progressPercentage = "progress_percentage"
         case projects
     }
 }
@@ -123,7 +137,7 @@ struct FeedItemView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text(item.projects?.title ?? "Unknown SupabaseProject")
+                Text(item.projects?.title ?? "Unknown Project")
                     .font(.headline)
                 Spacer()
                 if let date = item.createdAt {
@@ -133,7 +147,7 @@ struct FeedItemView: View {
                 }
             }
             
-            if let url = item.usdzUrl {
+            if let url = item.usdzFilePath {
                 VStack {
                     Image(systemName: "arkit")
                         .resizable()
@@ -156,8 +170,8 @@ struct FeedItemView: View {
                     .overlay(Text("No 3D Model Available").foregroundColor(.secondary))
             }
             
-            if let notes = item.versionNotes, !notes.isEmpty {
-                Text(notes)
+            if let progress = item.progressPercentage {
+                Text("Progress: \(progress)%")
                     .font(.body)
             }
         }

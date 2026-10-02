@@ -19,17 +19,23 @@ struct Profile: Codable, Identifiable {
 
 struct SupabaseProject: Codable, Identifiable {
     let id: UUID
-    let ownerId: UUID
+    let userId: UUID
     let createdAt: Date?
     let title: String
-    let description: String?
+    let yarnBrand: String?
+    let toolSize: String?
+    let patternSource: String?
+    let colorPalette: [String]?
 
     enum CodingKeys: String, CodingKey {
         case id
-        case ownerId = "owner_id"
+        case userId = "user_id"
         case createdAt = "created_at"
         case title
-        case description
+        case yarnBrand = "yarn_brand"
+        case toolSize = "tool_size"
+        case patternSource = "pattern_source"
+        case colorPalette = "color_palette"
     }
 }
 
@@ -37,15 +43,16 @@ struct SupabaseProjectVersion: Codable, Identifiable {
     let id: UUID
     let projectId: UUID
     let createdAt: Date?
-    let usdzUrl: URL?
-    let versionNotes: String?
+    let usdzFilePath: String?
+    let progressPercentage: Int?
+    // Let's omit spatial_notes for now if they aren't using them, or define a basic struct
 
     enum CodingKeys: String, CodingKey {
         case id
         case projectId = "project_id"
         case createdAt = "created_at"
-        case usdzUrl = "usdz_url"
-        case versionNotes = "version_notes"
+        case usdzFilePath = "usdz_file_path"
+        case progressPercentage = "progress_percentage"
     }
 }
 
