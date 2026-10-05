@@ -1,4 +1,5 @@
 import Foundation
+import _RealityKit_SwiftUI
 import Combine
 #if !targetEnvironment(simulator)
 import RealityKit
@@ -9,14 +10,17 @@ public class RealCaptureSession: CaptureSessionProvider {
     private var cancellables = Set<AnyCancellable>()
     private var stateSubject = CurrentValueSubject<CaptureSessionState, Never>(.initializing)
     
+    private var updateTask: Task<Void, Never>?
+    
     public var state: CaptureSessionState { stateSubject.value }
     public var statePublisher: AnyPublisher<CaptureSessionState, Never> { stateSubject.eraseToAnyPublisher() }
     
     public var objectCaptureSession: ObjectCaptureSession? { session }
     
     public init() {
-        session.$state
-            .sink { [weak self] state in
+        updateTask = Task { [weak self] in
+            guard let self = self else { return }
+            for await state in self.session.stateUpdates {
                 let mapped: CaptureSessionState
                 switch state {
                 case .initializing: mapped = .initializing
@@ -30,9 +34,9 @@ public class RealCaptureSession: CaptureSessionProvider {
                     mapped = .initializing
                 @unknown default: mapped = .initializing
                 }
-                self?.stateSubject.send(mapped)
+                self.stateSubject.send(mapped)
             }
-            .store(in: &cancellables)
+        }
     }
     
     public func setupSession(captureFolder: URL) {

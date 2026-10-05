@@ -1,4 +1,5 @@
 import Foundation
+import _RealityKit_SwiftUI
 import Combine
 #if !targetEnvironment(simulator)
 import RealityKit
