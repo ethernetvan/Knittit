@@ -5,24 +5,34 @@ struct ScanFlowWrapper: View {
     @Binding var selectedTab: Int
     @State private var usdzURL: URL?
     @State private var colors: [String] = []
+    @State private var isShowingSaveSheet = false
     
     var body: some View {
         NavigationStack {
+            ScanningView { completedURL, extractedColors in
+                self.usdzURL = completedURL
+                self.colors = extractedColors
+                self.isShowingSaveSheet = true
+            }
+            .navigationTitle("Scan")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+        .sheet(isPresented: $isShowingSaveSheet, onDismiss: {
+            // Reset state when sheet is dismissed/pulled down without saving
+            self.usdzURL = nil
+            self.colors = []
+        }) {
             if let usdzURL = usdzURL {
-                NewProjectFromScanView(usdzURL: usdzURL, colors: colors) { newProject in
-                    // Reset state
-                    self.usdzURL = nil
-                    self.colors = []
-                    // Switch to library tab
-                    selectedTab = 2
+                NavigationStack {
+                    NewProjectFromScanView(usdzURL: usdzURL, colors: colors) { newProject in
+                        // Reset state
+                        self.isShowingSaveSheet = false
+                        self.usdzURL = nil
+                        self.colors = []
+                        // Switch to library tab
+                        selectedTab = 2
+                    }
                 }
-            } else {
-                ScanningView { completedURL, extractedColors in
-                    self.usdzURL = completedURL
-                    self.colors = extractedColors
-                }
-                .navigationTitle("Scan")
-                .navigationBarTitleDisplayMode(.inline)
             }
         }
     }
@@ -30,6 +40,7 @@ struct ScanFlowWrapper: View {
 
 struct NewProjectFromScanView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
     
     let usdzURL: URL
     let colors: [String]
@@ -66,6 +77,14 @@ struct NewProjectFromScanView: View {
             .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
         .navigationTitle("New Project")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") {
+                    dismiss()
+                }
+            }
+        }
     }
     
     private func saveProject() {
