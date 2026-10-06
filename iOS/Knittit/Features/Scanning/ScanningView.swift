@@ -36,7 +36,30 @@ struct ScanningView: View {
                 VStack {
                     Spacer()
                     
+
                     // State handling
+                    if manager.sessionProvider is MockCaptureSession {
+                        VStack(spacing: 4) {
+                            Text("Mock Model to Spawn")
+                                .font(.caption)
+                                .foregroundColor(.white)
+                            Picker("Mock Model", selection: $manager.selectedMockModel) {
+                                ForEach(manager.availableMockModels, id: \.self) { url in
+                                    Text(url.deletingPathExtension().lastPathComponent)
+                                        .tag(url as URL?)
+                                        .foregroundColor(.primary)
+                                }
+                            }
+                            .tint(.white)
+                            .pickerStyle(.menu)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(Color.black.opacity(0.6))
+                            .cornerRadius(8)
+                        }
+                        .padding(.bottom, 8)
+                    }
+                    
                     if case .ready = manager.captureState {
                         Button {
                             manager.startDetecting()

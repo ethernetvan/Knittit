@@ -13,6 +13,8 @@ class ScanningManager: ObservableObject {
     @Published var isProcessing = false
     @Published var progress: Double = 0.0
     @Published var extractedColors: [String] = []
+    @Published var availableMockModels: [URL] = []
+    @Published var selectedMockModel: URL?
     
     private var captureFolder: URL?
     private var cancellables = Set<AnyCancellable>()
@@ -51,6 +53,8 @@ class ScanningManager: ObservableObject {
             .store(in: &cancellables)
             
         self.sessionProvider = provider
+        
+        loadAvailableMockModels()
     }
     
     func startDetecting() {
@@ -150,14 +154,20 @@ class ScanningManager: ObservableObject {
         }
     }
     
-    private func pickMockUSDZ() -> URL? {
+    func loadAvailableMockModels() {
         let sourceDir = URL(fileURLWithPath: #file).deletingLastPathComponent().deletingLastPathComponent()
         let dataDir = sourceDir.appendingPathComponent("Data")
+        let localDataDir = URL(fileURLWithPath: #file).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("Data")
         
         var usdzURLs: [URL] = []
         
         if FileManager.default.fileExists(atPath: dataDir.path) {
             if let files = try? FileManager.default.contentsOfDirectory(at: dataDir, includingPropertiesForKeys: nil) {
+                usdzURLs.append(contentsOf: files.filter { $0.pathExtension.lowercased() == "usdz" })
+            }
+        }
+        if FileManager.default.fileExists(atPath: localDataDir.path) {
+            if let files = try? FileManager.default.contentsOfDirectory(at: localDataDir, includingPropertiesForKeys: nil) {
                 usdzURLs.append(contentsOf: files.filter { $0.pathExtension.lowercased() == "usdz" })
             }
         }
@@ -171,7 +181,25 @@ class ScanningManager: ObservableObject {
             }
         }
         
-        return usdzURLs.randomElement()
+        var uniqueNames = Set<String>()
+        var uniqueURLs = [URL]()
+        for url in usdzURLs {
+            if !uniqueNames.contains(url.lastPathComponent) {
+                uniqueNames.insert(url.lastPathComponent)
+                uniqueURLs.append(url)
+            }
+        }
+        
+        DispatchQueue.main.async {
+            self.availableMockModels = uniqueURLs
+            if self.selectedMockModel == nil {
+                self.selectedMockModel = uniqueURLs.first
+            }
+        }
+    }
+    
+    private func pickMockUSDZ() -> URL? {
+        return selectedMockModel ?? availableMockModels.randomElement()
     }
     
     private func extractColors(from directory: URL) {
