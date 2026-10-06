@@ -4,6 +4,7 @@ import SwiftData
 
 struct ProjectDetailView: View {
     let project: KnitProject
+    var belongsToUser: Bool = true
     @Environment(\.modelContext) private var modelContext
     @State private var showEditProject = false
     @State private var currentVersionIndex: Int = 0
@@ -80,8 +81,10 @@ struct ProjectDetailView: View {
                         }
                     }
                 } else if entity.name == "ScannedModel" {
-                    withAnimation { activeNoteID = nil }
-                    self.queuedTapLocation = value.location
+                    if belongsToUser {
+                        withAnimation { activeNoteID = nil }
+                        self.queuedTapLocation = value.location
+                    }
                 }
             }
     }
@@ -119,27 +122,29 @@ struct ProjectDetailView: View {
                             Text(note.text)
                                 .font(.headline)
                                 .foregroundColor(.primary)
-                            HStack(spacing: 40) {
-                                Button(action: {
-                                    spatialNoteText = note.text
-                                    editingNoteID = note.id
-                                    showNoteInput = true
-                                }) {
-                                    VStack {
-                                        Image(systemName: "pencil")
-                                        Text("Edit")
-                                            .font(.caption)
+                            if belongsToUser {
+                                HStack(spacing: 40) {
+                                    Button(action: {
+                                        spatialNoteText = note.text
+                                        editingNoteID = note.id
+                                        showNoteInput = true
+                                    }) {
+                                        VStack {
+                                            Image(systemName: "pencil")
+                                            Text("Edit")
+                                                .font(.caption)
+                                        }
                                     }
-                                }
-                                Button(action: {
-                                    deleteNote(note, from: version)
-                                }) {
-                                    VStack {
-                                        Image(systemName: "trash")
-                                        Text("Delete")
-                                            .font(.caption)
+                                    Button(action: {
+                                        deleteNote(note, from: version)
+                                    }) {
+                                        VStack {
+                                            Image(systemName: "trash")
+                                            Text("Delete")
+                                                .font(.caption)
+                                        }
+                                        .foregroundColor(.red)
                                     }
-                                    .foregroundColor(.red)
                                 }
                             }
                         }
@@ -149,104 +154,103 @@ struct ProjectDetailView: View {
                         .shadow(radius: 10)
                         .padding(.bottom, 120)
                     }
-                    .transition(.opacity.combined(with: .move(edge: .bottom)))
                 }
-                
             } else {
-                VStack {
-                    Image(systemName: "cube.box")
-                        .font(.largeTitle)
-                        .foregroundColor(.gray)
-                    Text("No scans yet.")
-                    NavigationLink("Start Scanning", destination: ScanningView(project: project))
-                        .buttonStyle(.borderedProminent)
-                        .padding()
-                }
+                Text("No 3D Model found.")
+                    .foregroundColor(.secondary)
             }
             
-            if !sortedVersions.isEmpty {
-                VStack {
-                    Spacer()
-                    VStack {
-                        Text("Progress: \(currentVersion?.progressPercentage ?? 0)%")
-                            .font(.headline)
-                            .padding(.bottom, 5)
+            // UI Overlay
+            VStack {
+                Spacer()
+                
+                // Colors Preview
+                if !project.colorPalette.isEmpty {
+                    HStack {
+                        ForEach(project.colorPalette, id: \.self) { hex in
+                            Circle()
+                                .fill(Color(hex: hex) ?? .gray)
+                                .frame(width: 30, height: 30)
+                                .overlay(Circle().stroke(Color.primary.opacity(0.2), lineWidth: 1))
+                                .shadow(radius: 2)
+                        }
+                    }
+                    .padding()
+                    .background(.ultraThinMaterial)
+                    .clipShape(Capsule())
+                    .padding(.bottom, 10)
+                }
+                
+                if sortedVersions.count > 1 {
+                    HStack {
+                        Button(action: {
+                            if currentVersionIndex > 0 { currentVersionIndex -= 1 }
+                        }) {
+                            Image(systemName: "chevron.left")
+                                .padding()
+                                .background(.ultraThinMaterial)
+                                .clipShape(Circle())
+                        }
+                        .disabled(currentVersionIndex == 0)
                         
-                        if sortedVersions.count > 1 {
-                            Slider(
-                                value: Binding(
-                                    get: { Double(min(max(0, currentVersionIndex), sortedVersions.count - 1)) },
-                                    set: { currentVersionIndex = Int($0) }
-                                ),
-                                in: 0...Double(sortedVersions.count - 1),
-                                step: 1
-                            )
+                        Text("Version \(currentVersionIndex + 1) of \(sortedVersions.count)")
+                            .font(.headline)
                             .padding(.horizontal)
+                        
+                        Button(action: {
+                            if currentVersionIndex < sortedVersions.count - 1 { currentVersionIndex += 1 }
+                        }) {
+                            Image(systemName: "chevron.right")
+                                .padding()
+                                .background(.ultraThinMaterial)
+                                .clipShape(Circle())
+                        }
+                        .disabled(currentVersionIndex == sortedVersions.count - 1)
+                    }
+                    .padding(.bottom, 20)
+                }
+                
+                if belongsToUser {
+                    HStack(spacing: 40) {
+                        Button(action: {
+                            showEditProject = true
+                        }) {
+                            VStack {
+                                Image(systemName: "pencil")
+                                    .font(.title)
+                                Text("Details")
+                                    .font(.caption)
+                            }
                         }
                         
-                        Text(currentVersion?.scanDate ?? Date(), style: .date)
-                            .font(.caption)
+                        Button(action: exportVideo) {
+                            VStack {
+                                if isExporting {
+                                    ProgressView()
+                                        .scaleEffect(1.5)
+                                } else {
+                                    Image(systemName: "square.and.arrow.up")
+                                        .font(.title)
+                                    Text("Export")
+                                        .font(.caption)
+                                }
+                            }
+                        }
+                        .disabled(isExporting)
                     }
                     .padding()
                     .background(.ultraThinMaterial)
                     .cornerRadius(20)
-                    .padding()
-                }
-            }
-            
-            if isExporting {
-                Color.black.opacity(0.8).ignoresSafeArea()
-                VStack {
-                    ProgressView("Generating 360 Video...")
-                        .tint(.white)
-                        .foregroundColor(.white)
+                    .padding(.bottom, 30)
                 }
             }
         }
         .navigationTitle(project.title)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Menu {
-                    NavigationLink(destination: ScanningView(project: project)) {
-                        Label("Add Scan", systemImage: "plus.viewfinder")
-                    }
-                    Button(action: exportVideo) {
-                        Label("Export Video", systemImage: "square.and.arrow.up")
-                    }
-                    .disabled(currentVersion == nil)
-                    
-                    Button {
-                        showEditProject = true
-                    } label: {
-                        Label("Edit Project", systemImage: "pencil")
-                    }
-                    
-                    Button(role: .destructive) {
-                        if let version = currentVersion {
-                            let versionId = version.id
-                            project.versions.removeAll(where: { $0.id == versionId })
-                            modelContext.delete(version)
-                            
-                            if currentVersionIndex >= project.versions.count {
-                                currentVersionIndex = max(0, project.versions.count - 1)
-                            }
-                            
-                            try? modelContext.save()
-                        }
-                    } label: {
-                        Label("Delete Current Scan", systemImage: "trash")
-                    }
-                    .disabled(currentVersion == nil)
-                    
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                }
-            }
-        }
+        .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showEditProject) {
             EditProjectView(project: project)
         }
-        .alert(editingNoteID == nil ? "Add Spatial Note" : "Edit Note", isPresented: $showNoteInput) {
+        .alert("Spatial Note", isPresented: $showNoteInput) {
             TextField("Note", text: $spatialNoteText)
             Button("Save", action: saveSpatialNote)
             Button("Cancel", role: .cancel) { 
@@ -261,6 +265,8 @@ struct ProjectDetailView: View {
         rootEntity.transform.scale = SIMD3<Float>(repeating: baseScale * magnifyScale)
         updateNotes(for: version)
         
+        // Always billboard notes towards the camera by removing local rotation
+        // then looking at the camera. For simplicity here, we keep them looking at a general 'front'.
         let globalInverse = (baseRotation * dragRotation).inverse
         let tilt = simd_quatf(angle: .pi / 2, axis: SIMD3<Float>(1, 0, 0))
         let finalRot = globalInverse * tilt
@@ -269,8 +275,6 @@ struct ProjectDetailView: View {
             for child in children {
                 if child.name.hasPrefix("note_") {
                     child.transform.rotation = finalRot
-                    
-
                 }
             }
         }
@@ -313,6 +317,9 @@ struct ProjectDetailView: View {
     
     private func getUSDZURL(for version: ProjectVersion) -> URL {
         let path = version.usdzFilePath
+        if path.hasPrefix("http://") || path.hasPrefix("https://") {
+            return URL(string: path)!
+        }
         if path.hasPrefix("/") {
             return URL(fileURLWithPath: path)
         } else {
@@ -324,7 +331,23 @@ struct ProjectDetailView: View {
     private func loadModel(for version: ProjectVersion) {
         Task { @MainActor in
             let url = getUSDZURL(for: version)
-            if let model = try? await ModelEntity(contentsOf: url) {
+            
+            // If the URL is remote, create a temp file for loading
+            var loadURL = url
+            if url.scheme == "http" || url.scheme == "https" {
+                do {
+                    let data = try await URLSession.shared.data(from: url).0
+                    let tempDir = FileManager.default.temporaryDirectory
+                    let localURL = tempDir.appendingPathComponent(url.lastPathComponent)
+                    try data.write(to: localURL)
+                    loadURL = localURL
+                } catch {
+                    print("Failed to download model: \(error)")
+                    return
+                }
+            }
+            
+            if let model = try? await ModelEntity(contentsOf: loadURL) {
                 model.name = "ScannedModel"
                 model.components.set(InputTargetComponent(allowedInputTypes: .all))
                 addConvexCollisions(to: model)
@@ -391,7 +414,6 @@ struct ProjectDetailView: View {
             emoji.transform.rotation = rot
             circle.addChild(emoji)
             
-
             model.addChild(circle)
         }
     }
@@ -422,7 +444,6 @@ struct ProjectDetailView: View {
         }
     }
 }
-
 
 struct EditProjectView: View {
     @Bindable var project: KnitProject

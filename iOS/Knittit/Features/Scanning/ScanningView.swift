@@ -6,12 +6,12 @@ import SwiftData
 
 struct ScanningView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
-    
-    let project: KnitProject
     
     @StateObject private var manager = ScanningManager()
     @State private var showWarningModal = true
+    
+    // Callback to let the parent know when the scan is done and what data was generated.
+    var onScanComplete: (URL, [String]) -> Void
     
     var body: some View {
         ZStack {
@@ -182,31 +182,7 @@ struct ScanningView: View {
     private func compileModel() {
         manager.processScan { usdzURL, colors in
             guard let usdzURL = usdzURL else { return }
-            
-            let newVersion = ProjectVersion(
-                scanDate: Date(),
-                progressPercentage: 100, // Updating the placeholder default to 100% instead of 50%
-                usdzFilePath: {
-                    let docDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-                    let fullPath = usdzURL.path
-                    if fullPath.hasPrefix(docDir.path) {
-                        return String(fullPath.dropFirst(docDir.path.count + 1))
-                    }
-                    return usdzURL.lastPathComponent
-                }()
-            )
-            
-            project.versions.append(newVersion)
-            
-            // Core Feature 1 Bonus: Add extracted colors to project
-            for color in colors {
-                if !project.colorPalette.contains(color) {
-                    project.colorPalette.append(color)
-                }
-            }
-            
-            try? modelContext.save()
-            dismiss()
+            onScanComplete(usdzURL, colors)
         }
     }
 }

@@ -7,14 +7,32 @@
 
 import SwiftUI
 import SwiftData
-import Combine
 
 struct ContentView: View {
     @AppStorage("isLoggedIn") private var isLoggedIn: Bool = false
+    @State private var selectedTab: Int = 0
 
     var body: some View {
         if isLoggedIn {
-            LibraryGridView()
+            TabView(selection: $selectedTab) {
+                FeedView()
+                    .tabItem {
+                        Label("My Feed", systemImage: "person.2.fill")
+                    }
+                    .tag(0)
+                
+                ScanFlowWrapper(selectedTab: $selectedTab)
+                    .tabItem {
+                        Label("Scan", systemImage: "viewfinder")
+                    }
+                    .tag(1)
+                
+                LibraryGridView()
+                    .tabItem {
+                        Label("My Library", systemImage: "square.grid.2x2.fill")
+                    }
+                    .tag(2)
+            }
         } else {
             SupabaseLoginView(isLoggedIn: $isLoggedIn)
                 .transition(.opacity)

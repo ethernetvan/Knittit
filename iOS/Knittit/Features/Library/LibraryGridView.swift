@@ -19,7 +19,7 @@ struct LibraryGridView: View {
                         Text("No projects yet.")
                             .font(.headline)
                             .foregroundColor(.gray)
-                        Text("Tap + to scan your first knit!")
+                        Text("Go to the Scan tab to save your first knit!")
                             .foregroundColor(.secondary)
                     }
                     .padding(.top, 100)
@@ -42,13 +42,6 @@ struct LibraryGridView: View {
                 }
             }
             .navigationTitle("My Library")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    NavigationLink(destination: NewProjectView()) {
-                        Image(systemName: "plus")
-                    }
-                }
-            }
         }
     }
 }
@@ -111,34 +104,6 @@ struct ProjectThumbnail: View {
     }
 }
 
-struct NewProjectView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Environment(\.dismiss) private var dismiss
-    
-    @State private var title = ""
-    @State private var yarnBrand = ""
-    @State private var toolSize = ""
-    @State private var isScanning = false
-    
-    var body: some View {
-        Form {
-            Section(header: Text("Project Details")) {
-                TextField("Title", text: $title)
-                TextField("Yarn Brand", text: $yarnBrand)
-                TextField("Tool Size (e.g. US 8)", text: $toolSize)
-            }
-            
-            Button("Save & Start Scanning") {
-                let newProject = KnitProject(title: title, yarnBrand: yarnBrand, toolSize: toolSize)
-                modelContext.insert(newProject)
-                dismiss()
-            }
-            .disabled(title.isEmpty)
-        }
-        .navigationTitle("New Project")
-    }
-}
-
 // Helper for Hex to Color
 extension Color {
     init?(hex: String) {
@@ -151,79 +116,5 @@ extension Color {
             green: Double((rgb & 0x00FF00) >> 8) / 255.0,
             blue: Double(rgb & 0x0000FF) / 255.0
         )
-    }
-}
-
-@MainActor
-class ThumbnailManager {
-    static let shared = ThumbnailManager()
-    private let cache = NSCache<NSString, UIImage>()
-    
-    private func getUSDZURL(for version: ProjectVersion) -> URL {
-        let path = version.usdzFilePath
-        if path.hasPrefix("/") {
-            return URL(fileURLWithPath: path)
-        } else {
-            let docDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-            return docDir.appendingPathComponent(path)
-        }
-    }
-    
-    func getThumbnail(for version: ProjectVersion) async -> UIImage? {
-        let cacheKey = version.id.uuidString as NSString
-        if let cached = cache.object(forKey: cacheKey) {
-            return cached
-        }
-        
-        let fileManager = FileManager.default
-        guard let docDir = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else { return nil }
-        let thumbURL = docDir.appendingPathComponent("\(version.id.uuidString)_thumb.png")
-        
-        if fileManager.fileExists(atPath: thumbURL.path) {
-            if let data = try? Data(contentsOf: thumbURL), let img = UIImage(data: data) {
-                cache.setObject(img, forKey: cacheKey)
-                return img
-            }
-        }
-        
-        let usdzURL = getUSDZURL(for: version)
-        
-        guard fileManager.fileExists(atPath: usdzURL.path) else {
-            return nil
-        }
-        
-        let request = QLThumbnailGenerator.Request(
-            fileAt: usdzURL,
-            size: CGSize(width: 300, height: 300),
-            scale: UIScreen.main.scale,
-            representationTypes: .thumbnail
-        )
-        
-        let generator = QLThumbnailGenerator.shared
-        
-        do {
-            let img: UIImage = try await withCheckedThrowingContinuation { continuation in
-                var resumed = false
-                generator.generateRepresentations(for: request) { thumbnail, type, error in
-                    if resumed { return }
-                    resumed = true
-                    
-                    if let img = thumbnail?.uiImage {
-                        continuation.resume(returning: img)
-                    } else {
-                        continuation.resume(throwing: error ?? NSError(domain: "ThumbError", code: 0))
-                    }
-                }
-            }
-            
-            if let data = img.pngData() {
-                try? data.write(to: thumbURL)
-            }
-            cache.setObject(img, forKey: cacheKey)
-            return img
-        } catch {
-            print("Thumbnail generation error: \(error)")
-            return nil
-        }
     }
 }
