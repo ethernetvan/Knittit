@@ -1,6 +1,8 @@
 import Foundation
+import _RealityKit_SwiftUI
 import Combine
 import RealityKit
+import Observation
 #if !targetEnvironment(simulator)
 
 @MainActor
@@ -15,24 +17,33 @@ public class RealCaptureSession: CaptureSessionProvider {
     public var objectCaptureSession: ObjectCaptureSession? { session }
     
     public init() {
-        session.$state
-            .sink { [weak self] state in
-                let mapped: CaptureSessionState
-                switch state {
-                case .initializing: mapped = .initializing
-                case .ready: mapped = .ready
-                case .detecting: mapped = .detecting
-                case .capturing: mapped = .capturing
-                case .finishing: mapped = .finishing
-                case .completed: mapped = .completed
-                case .failed(let err):
-                    print("Session failed: \(err)")
-                    mapped = .initializing
-                @unknown default: mapped = .initializing
-                }
-                self?.stateSubject.send(mapped)
+        observeState()
+    }
+    
+    private func observeState() {
+        withObservationTracking {
+            let currentState = session.state
+            let mapped: CaptureSessionState
+            switch currentState {
+            case .initializing: mapped = .initializing
+            case .ready: mapped = .ready
+            case .detecting: mapped = .detecting
+            case .capturing: mapped = .capturing
+            case .finishing: mapped = .finishing
+            case .completed: mapped = .completed
+            case .failed(let err):
+                print("Session failed: \(err)")
+                mapped = .initializing
+            @unknown default: mapped = .initializing
             }
-            .store(in: &cancellables)
+            if stateSubject.value != mapped {
+                stateSubject.send(mapped)
+            }
+        } onChange: {
+            Task { @MainActor [weak self] in
+                self?.observeState()
+            }
+        }
     }
     
     public func setupSession(captureFolder: URL) {

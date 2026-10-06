@@ -14,25 +14,23 @@ struct ContentView: View {
 
     var body: some View {
         if isLoggedIn {
-            TabView(selection: $selectedTab) {
-                FeedView()
-                    .tabItem {
-                        Label("My Feed", systemImage: "person.2.fill")
-                    }
-                    .tag(0)
+            ZStack(alignment: .bottom) {
+                TabView(selection: $selectedTab) {
+                    FeedView()
+                        .tag(0)
+                    
+                    ScanFlowWrapper(selectedTab: $selectedTab)
+                        .tag(1)
+                    
+                    ProfileView(targetUserId: nil, isCurrentUser: true, isTabRoot: true)
+                        .tag(2)
+                }
+                .toolbar(.hidden, for: .tabBar)
                 
-                ScanFlowWrapper(selectedTab: $selectedTab)
-                    .tabItem {
-                        Label("Scan", systemImage: "viewfinder")
-                    }
-                    .tag(1)
-                
-                LibraryGridView()
-                    .tabItem {
-                        Label("My Library", systemImage: "square.grid.2x2.fill")
-                    }
-                    .tag(2)
+                CustomTabBar(selectedTab: $selectedTab)
+                    .padding(.bottom, 8)
             }
+            .ignoresSafeArea(.keyboard, edges: .bottom)
         } else {
             SupabaseLoginView(isLoggedIn: $isLoggedIn)
                 .transition(.opacity)

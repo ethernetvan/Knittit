@@ -19,6 +19,36 @@ class SupabaseAuthManager: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     
+    static func currentUserId() -> String? {
+        if let stored = UserDefaults.standard.string(forKey: "currentUserId"), !stored.isEmpty {
+            return stored
+        }
+        if let token = UserDefaults.standard.string(forKey: "supabaseAccessToken") {
+            let parts = token.split(separator: ".")
+            if parts.count > 1 {
+                var base64 = String(parts[1])
+                while base64.count % 4 != 0 {
+                    base64.append("=")
+                }
+                if let data = Data(base64Encoded: base64),
+                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let sub = json["sub"] as? String {
+                    UserDefaults.standard.set(sub, forKey: "currentUserId")
+                    return sub
+                }
+            }
+        }
+        return nil
+    }
+    
+    func signOut() {
+        UserDefaults.standard.removeObject(forKey: "supabaseAccessToken")
+        UserDefaults.standard.removeObject(forKey: "supabaseRefreshToken")
+        UserDefaults.standard.removeObject(forKey: "currentUserId")
+        UserDefaults.standard.removeObject(forKey: "currentUserEmail")
+        UserDefaults.standard.set(false, forKey: "isLoggedIn")
+    }
+    
     func signIn(email: String, password: String) async -> Bool {
         isLoading = true
         errorMessage = nil
@@ -54,6 +84,15 @@ class SupabaseAuthManager: ObservableObject {
                    let refreshToken = json["refresh_token"] as? String {
                     UserDefaults.standard.set(accessToken, forKey: "supabaseAccessToken")
                     UserDefaults.standard.set(refreshToken, forKey: "supabaseRefreshToken")
+                    
+                    if let userObj = json["user"] as? [String: Any] {
+                        if let userId = userObj["id"] as? String {
+                            UserDefaults.standard.set(userId, forKey: "currentUserId")
+                        }
+                        if let userEmail = userObj["email"] as? String {
+                            UserDefaults.standard.set(userEmail, forKey: "currentUserEmail")
+                        }
+                    }
                     return true
                 } else {
                     errorMessage = "Failed to parse authentication tokens."

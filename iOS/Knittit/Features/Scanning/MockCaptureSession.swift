@@ -1,5 +1,9 @@
 import Foundation
 import Combine
+#if !targetEnvironment(simulator)
+import RealityKit
+import _RealityKit_SwiftUI
+#endif
 
 @MainActor
 public class MockCaptureSession: CaptureSessionProvider {
@@ -7,6 +11,10 @@ public class MockCaptureSession: CaptureSessionProvider {
     
     public var state: CaptureSessionState { stateSubject.value }
     public var statePublisher: AnyPublisher<CaptureSessionState, Never> { stateSubject.eraseToAnyPublisher() }
+    
+    #if !targetEnvironment(simulator)
+    public var objectCaptureSession: ObjectCaptureSession? { nil }
+    #endif
     
     private var captureFolder: URL?
     
@@ -63,10 +71,10 @@ public class MockCaptureSession: CaptureSessionProvider {
                 }
                 print("Mock images copied successfully!")
             } catch {
-                print("Error copying mock images: \\(error)")
+                print("Error copying mock images: \(error)")
             }
         } else {
-            print("Could not find the mock images dir at \\(dataDir.path)")
+            print("Could not find the mock images dir at \(dataDir.path)")
         }
     }
 }
