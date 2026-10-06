@@ -145,7 +145,47 @@
 				CB595C723058509500A14FE2 /* KnittitUITests.xctest */,
 				CB595C593058509300A14FE2 /* Knittit.app */,
 				CB595C683058509500A14FE2 /* KnittitTests.xctest */,
+				CBED882C307511F00044FB9B /* Features */,
+				CBED8830307511F40044FB9B /* Models */,
 			);
+			sourceTree = "<group>";
+		};
+		CBED882C307511F00044FB9B /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				CBED882D307511F40044FB9B /* Scanning */,
+				CBED882E307511F40044FB9B /* Library */,
+				CBED882F307511F40044FB9B /* Login */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		CBED882D307511F40044FB9B /* Scanning */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Scanning;
+			sourceTree = "<group>";
+		};
+		CBED882E307511F40044FB9B /* Library */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Library;
+			sourceTree = "<group>";
+		};
+		CBED882F307511F40044FB9B /* Login */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Login;
+			sourceTree = "<group>";
+		};
+		CBED8830307511F40044FB9B /* Models */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Models;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
