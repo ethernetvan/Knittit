@@ -24,11 +24,15 @@ class ScanningManager: ObservableObject {
     
     func setupSession() {
         let provider: CaptureSessionProvider
-        #if targetEnvironment(simulator)
+#if !targetEnvironment(simulator)
+        if ObjectCaptureSession.isSupported {
+            provider = RealCaptureSession()
+        } else {
+            provider = MockCaptureSession()
+        }
+#else
         provider = MockCaptureSession()
-        #else
-        provider = RealCaptureSession()
-        #endif
+#endif
         
         let documentsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         let folderName = UUID().uuidString
@@ -74,14 +78,8 @@ class ScanningManager: ObservableObject {
         // Core Feature 1 Bonus Hook: Extract dominant colors
         extractColors(from: imagesFolder)
         
-        #if targetEnvironment(simulator)
-        simulateModelProcessing(modelURL: modelURL, completion: completion)
-        #else
-        guard PhotogrammetrySession.isSupported else {
-            print("Photogrammetry is not supported on this device. Falling back to mock model.")
-            simulateModelProcessing(modelURL: modelURL, completion: completion)
-            return
-        }
+#if !targetEnvironment(simulator)
+        if ObjectCaptureSession.isSupported && PhotogrammetrySession.isSupported {
         
         do {
             photogrammetrySession = try PhotogrammetrySession(input: imagesFolder)
@@ -112,7 +110,13 @@ class ScanningManager: ObservableObject {
             print("Photogrammetry setup failed: \(error)")
             isProcessing = false
         }
-        #endif
+        } else {
+            print("Photogrammetry or ObjectCaptureSession is not supported on this device. Falling back to mock model.")
+            simulateModelProcessing(modelURL: modelURL, completion: completion)
+        }
+#else
+        simulateModelProcessing(modelURL: modelURL, completion: completion)
+#endif
     }
     
     private func simulateModelProcessing(modelURL: URL, completion: @escaping (URL?, [String]) -> Void) {
@@ -161,6 +165,9 @@ class ScanningManager: ObservableObject {
         if usdzURLs.isEmpty {
             if let bundleUSDZs = Bundle.main.urls(forResourcesWithExtension: "usdz", subdirectory: nil) {
                 usdzURLs.append(contentsOf: bundleUSDZs)
+            }
+            if let bundleDataUSDZs = Bundle.main.urls(forResourcesWithExtension: "usdz", subdirectory: "Data") {
+                usdzURLs.append(contentsOf: bundleDataUSDZs)
             }
         }
         

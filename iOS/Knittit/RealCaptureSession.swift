@@ -1,7 +1,7 @@
 import Foundation
 import Combine
-#if !targetEnvironment(simulator)
 import RealityKit
+#if !targetEnvironment(simulator)
 
 @MainActor
 public class RealCaptureSession: CaptureSessionProvider {

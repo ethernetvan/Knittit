@@ -72,11 +72,21 @@
 			);
 			target = CB595C713058509500A14FE2 /* KnittitUITests */;
 		};
+		CBED88273074FFE50044FB9B /* Exceptions for "Knittit" folder in "Knittit" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = CB595C583058509300A14FE2 /* Knittit */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		CB595C5B3058509300A14FE2 /* Knittit */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				CBED88273074FFE50044FB9B /* Exceptions for "Knittit" folder in "Knittit" target */,
+			);
 			path = Knittit;
 			sourceTree = "<group>";
 		};
@@ -155,6 +165,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				CB595C5B3058509300A14FE2 /* Knittit */,
+				CB772C0930689D09008AEC82 /* Data */,
 			);
 			name = Knittit;
 			packageProductDependencies = (
@@ -449,6 +460,7 @@
 				DEVELOPMENT_TEAM = JLYU7BC62M;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Knittit/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Knittit uses the camera and LiDAR scanner to capture 3D photogrammetry models of your knit and crochet fiber art projects.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Knittit requires permission to save rendered 360-degree looping MP4 videos directly to your photo library.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Knittit needs access to your photo library to save and export 360-degree turnaround videos of your fiber art projects.";
@@ -484,6 +496,7 @@
 				DEVELOPMENT_TEAM = JLYU7BC62M;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Knittit/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Knittit uses the camera and LiDAR scanner to capture 3D photogrammetry models of your knit and crochet fiber art projects.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Knittit requires permission to save rendered 360-degree looping MP4 videos directly to your photo library.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Knittit needs access to your photo library to save and export 360-degree turnaround videos of your fiber art projects.";

@@ -1,7 +1,6 @@
 import Foundation
 import Combine
 
-#if targetEnvironment(simulator)
 @MainActor
 public class MockCaptureSession: CaptureSessionProvider {
     private var stateSubject = CurrentValueSubject<CaptureSessionState, Never>(.initializing)
@@ -47,9 +46,10 @@ public class MockCaptureSession: CaptureSessionProvider {
         let imagesURL = folder.appendingPathComponent("Images/")
         try? FileManager.default.createDirectory(at: imagesURL, withIntermediateDirectories: true)
         
-        // Dynamic lookup based on the path of this source file
-        let sourceDir = URL(fileURLWithPath: #file).deletingLastPathComponent().deletingLastPathComponent()
-        let dataDir = sourceDir.appendingPathComponent("Data/Rock36Images")
+        // Try to find the mock images in the Main Bundle or locally
+        let dataDir = Bundle.main.url(forResource: "Rock36Images", withExtension: nil) ??
+                      Bundle.main.url(forResource: "Rock36Images", withExtension: nil, subdirectory: "Data") ??
+                      URL(fileURLWithPath: #file).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("Data/Rock36Images")
         
         if FileManager.default.fileExists(atPath: dataDir.path) {
             do {
@@ -70,4 +70,3 @@ public class MockCaptureSession: CaptureSessionProvider {
         }
     }
 }
-#endif

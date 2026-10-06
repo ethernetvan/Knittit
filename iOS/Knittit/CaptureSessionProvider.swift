@@ -1,8 +1,6 @@
 import Foundation
 import Combine
-#if !targetEnvironment(simulator)
 import RealityKit
-#endif
 
 public enum CaptureSessionState {
     case initializing
