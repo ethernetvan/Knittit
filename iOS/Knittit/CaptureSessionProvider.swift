@@ -1,8 +1,7 @@
 import Foundation
+import _RealityKit_SwiftUI
 import Combine
-#if !targetEnvironment(simulator)
 import RealityKit
-#endif
 
 public enum CaptureSessionState {
     case initializing
@@ -23,7 +22,6 @@ public protocol CaptureSessionProvider: AnyObject {
     func startCapturing()
     func finishCapture()
     
-    #if !targetEnvironment(simulator)
+    @available(iOS 17.0, *)
     var objectCaptureSession: ObjectCaptureSession? { get }
-    #endif
 }

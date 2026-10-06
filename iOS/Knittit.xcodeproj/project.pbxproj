@@ -192,6 +192,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				CB595C5B3058509300A14FE2 /* Knittit */,
+				CB772C0930689D09008AEC82 /* Data */,
 			);
 			name = Knittit;
 			packageProductDependencies = (

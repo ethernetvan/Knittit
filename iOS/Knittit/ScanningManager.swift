@@ -24,11 +24,11 @@ class ScanningManager: ObservableObject {
     
     func setupSession() {
         let provider: CaptureSessionProvider
-        #if targetEnvironment(simulator)
-        provider = MockCaptureSession()
-        #else
-        provider = RealCaptureSession()
-        #endif
+        if ObjectCaptureSession.isSupported {
+            provider = RealCaptureSession()
+        } else {
+            provider = MockCaptureSession()
+        }
         
         let documentsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         let folderName = UUID().uuidString
@@ -74,11 +74,17 @@ class ScanningManager: ObservableObject {
         // Core Feature 1 Bonus Hook: Extract dominant colors
         extractColors(from: imagesFolder)
         
-        #if targetEnvironment(simulator)
-        simulateModelProcessing(modelURL: modelURL, completion: completion)
-        #else
         guard PhotogrammetrySession.isSupported else {
             print("Photogrammetry is not supported on this device. Falling back to mock model.")
+            simulateModelProcessing(modelURL: modelURL, completion: completion)
+            return
+        }
+        
+        // Check if we are actually using the Mock provider. If so, we probably want to mock processing too,
+        // because the mock session doesn't create real images that PhotogrammetrySession can process properly (or it might, but it could be slow).
+        // For now, if we used MockCaptureSession, also do simulateModelProcessing to be safe.
+        if sessionProvider is MockCaptureSession {
+            print("Using mock capture session. Simulating model processing.")
             simulateModelProcessing(modelURL: modelURL, completion: completion)
             return
         }
@@ -112,7 +118,6 @@ class ScanningManager: ObservableObject {
             print("Photogrammetry setup failed: \(error)")
             isProcessing = false
         }
-        #endif
     }
     
     private func simulateModelProcessing(modelURL: URL, completion: @escaping (URL?, [String]) -> Void) {
@@ -147,20 +152,23 @@ class ScanningManager: ObservableObject {
     }
     
     private func pickMockUSDZ() -> URL? {
+        var usdzURLs: [URL] = []
+        
+        // Try looking in the bundled Data folder or main bundle
+        if let bundleUSDZs = Bundle.main.urls(forResourcesWithExtension: "usdz", subdirectory: "Data") {
+            usdzURLs.append(contentsOf: bundleUSDZs)
+        }
+        if let bundleUSDZs = Bundle.main.urls(forResourcesWithExtension: "usdz", subdirectory: nil) {
+            usdzURLs.append(contentsOf: bundleUSDZs)
+        }
+        
+        // Also try the fallback relative to #file for simulator / previews if not in bundle
         let sourceDir = URL(fileURLWithPath: #file).deletingLastPathComponent().deletingLastPathComponent()
         let dataDir = sourceDir.appendingPathComponent("Data")
-        
-        var usdzURLs: [URL] = []
         
         if FileManager.default.fileExists(atPath: dataDir.path) {
             if let files = try? FileManager.default.contentsOfDirectory(at: dataDir, includingPropertiesForKeys: nil) {
                 usdzURLs.append(contentsOf: files.filter { $0.pathExtension.lowercased() == "usdz" })
-            }
-        }
-        
-        if usdzURLs.isEmpty {
-            if let bundleUSDZs = Bundle.main.urls(forResourcesWithExtension: "usdz", subdirectory: nil) {
-                usdzURLs.append(contentsOf: bundleUSDZs)
             }
         }
         

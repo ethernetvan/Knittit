@@ -1,13 +1,17 @@
 import Foundation
 import Combine
+import RealityKit
+import _RealityKit_SwiftUI
 
-#if targetEnvironment(simulator)
 @MainActor
 public class MockCaptureSession: CaptureSessionProvider {
     private var stateSubject = CurrentValueSubject<CaptureSessionState, Never>(.initializing)
     
     public var state: CaptureSessionState { stateSubject.value }
     public var statePublisher: AnyPublisher<CaptureSessionState, Never> { stateSubject.eraseToAnyPublisher() }
+    
+    @available(iOS 17.0, *)
+    public var objectCaptureSession: ObjectCaptureSession? { nil }
     
     private var captureFolder: URL?
     
@@ -47,7 +51,30 @@ public class MockCaptureSession: CaptureSessionProvider {
         let imagesURL = folder.appendingPathComponent("Images/")
         try? FileManager.default.createDirectory(at: imagesURL, withIntermediateDirectories: true)
         
-        // Dynamic lookup based on the path of this source file
+        // Try looking in the bundle first
+        var bundlePaths = Bundle.main.urls(forResourcesWithExtension: "heic", subdirectory: "Data/Rock36Images") ?? []
+        if bundlePaths.isEmpty {
+            bundlePaths = Bundle.main.urls(forResourcesWithExtension: "HEIC", subdirectory: "Data/Rock36Images") ?? []
+        }
+        if bundlePaths.isEmpty {
+            bundlePaths = Bundle.main.urls(forResourcesWithExtension: "heic", subdirectory: nil) ?? []
+        }
+        if bundlePaths.isEmpty {
+            bundlePaths = Bundle.main.urls(forResourcesWithExtension: "HEIC", subdirectory: nil) ?? []
+        }
+        
+        if !bundlePaths.isEmpty {
+            for src in bundlePaths {
+                let dst = imagesURL.appendingPathComponent(src.lastPathComponent)
+                if !FileManager.default.fileExists(atPath: dst.path) {
+                    try? FileManager.default.copyItem(at: src, to: dst)
+                }
+            }
+            print("Mock images copied successfully from bundle!")
+            return
+        }
+        
+        // Dynamic lookup based on the path of this source file (for Simulator preview fallback)
         let sourceDir = URL(fileURLWithPath: #file).deletingLastPathComponent().deletingLastPathComponent()
         let dataDir = sourceDir.appendingPathComponent("Data/Rock36Images")
         
@@ -61,13 +88,12 @@ public class MockCaptureSession: CaptureSessionProvider {
                         try FileManager.default.copyItem(at: src, to: dst)
                     }
                 }
-                print("Mock images copied successfully!")
+                print("Mock images copied successfully from source dir!")
             } catch {
-                print("Error copying mock images: \\(error)")
+                print("Error copying mock images: \(error)")
             }
         } else {
-            print("Could not find the mock images dir at \\(dataDir.path)")
+            print("Could not find the mock images dir at \(dataDir.path)")
         }
     }
 }
-#endif

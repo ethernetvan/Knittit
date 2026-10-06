@@ -1,8 +1,7 @@
 import SwiftUI
-#if !targetEnvironment(simulator)
 import RealityKit
-#endif
 import Supabase
+import Storage
 
 @available(iOS 17.0, *)
 struct ScanningView: View {
@@ -15,21 +14,20 @@ struct ScanningView: View {
         ZStack {
             if let provider = manager.sessionProvider {
                 
-                #if targetEnvironment(simulator)
-                Color.black.ignoresSafeArea()
-                VStack {
-                    Text("Simulator Capture Mock")
-                        .font(.largeTitle)
-                        .foregroundColor(.white)
-                    Text("State: \(String(describing: manager.captureState))")
-                        .foregroundColor(.gray)
-                }
-                #else
                 if let objectSession = provider.objectCaptureSession {
                     ObjectCaptureView(session: objectSession)
                         .ignoresSafeArea()
+                } else {
+                    // Fallback for mock session
+                    Color.black.ignoresSafeArea()
+                    VStack {
+                        Text("Capture Mock")
+                            .font(.largeTitle)
+                            .foregroundColor(.white)
+                        Text("State: \(String(describing: manager.captureState))")
+                            .foregroundColor(.gray)
+                    }
                 }
-                #endif
                 
                 VStack {
                     Spacer()

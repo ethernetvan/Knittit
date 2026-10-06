@@ -1,4 +1,5 @@
 import Foundation
+import _RealityKit_SwiftUI
 import Combine
 #if !targetEnvironment(simulator)
 import RealityKit
@@ -6,7 +7,6 @@ import RealityKit
 @MainActor
 public class RealCaptureSession: CaptureSessionProvider {
     private let session = ObjectCaptureSession()
-    private var cancellables = Set<AnyCancellable>()
     private var stateSubject = CurrentValueSubject<CaptureSessionState, Never>(.initializing)
     
     public var state: CaptureSessionState { stateSubject.value }
@@ -15,24 +15,32 @@ public class RealCaptureSession: CaptureSessionProvider {
     public var objectCaptureSession: ObjectCaptureSession? { session }
     
     public init() {
-        session.$state
-            .sink { [weak self] state in
-                let mapped: CaptureSessionState
-                switch state {
-                case .initializing: mapped = .initializing
-                case .ready: mapped = .ready
-                case .detecting: mapped = .detecting
-                case .capturing: mapped = .capturing
-                case .finishing: mapped = .finishing
-                case .completed: mapped = .completed
-                case .failed(let err):
-                    print("Session failed: \(err)")
-                    mapped = .initializing
-                @unknown default: mapped = .initializing
-                }
-                self?.stateSubject.send(mapped)
+        startObservingState()
+    }
+    
+    private func startObservingState() {
+        withObservationTracking {
+            let state = session.state
+            let mapped: CaptureSessionState
+            switch state {
+            case .initializing: mapped = .initializing
+            case .ready: mapped = .ready
+            case .detecting: mapped = .detecting
+            case .capturing: mapped = .capturing
+            case .finishing: mapped = .finishing
+            case .completed: mapped = .completed
+            case .failed(let err):
+                print("Session failed: \(err)")
+                mapped = .initializing
+            @unknown default: mapped = .initializing
             }
-            .store(in: &cancellables)
+            // Update the subject
+            self.stateSubject.send(mapped)
+        } onChange: { [weak self] in
+            Task { @MainActor [weak self] in
+                self?.startObservingState()
+            }
+        }
     }
     
     public func setupSession(captureFolder: URL) {

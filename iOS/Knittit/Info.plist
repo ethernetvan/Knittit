@@ -2,14 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>NSCameraUsageDescription</key>
-	<string>Knittit requires camera access to scan your 3D knitting projects using your device's LiDAR sensor.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Knittit requires photo library access to save and retrieve your 3D models.</string>
-	<key>SupabaseAnonKey</key>
-	<string>$(SUPABASE_ANON_KEY)</string>
-	<key>SupabaseURL</key>
-	<string>$(SUPABASE_URL)</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
@@ -17,5 +9,15 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>Knittit requires camera access to scan your 3D knitting projects using your device's LiDAR sensor.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Knittit requires access to your local network to connect to a local database.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Knittit requires photo library access to save and retrieve your 3D models.</string>
+	<key>SupabaseAnonKey</key>
+	<string>$(SUPABASE_ANON_KEY)</string>
+	<key>SupabaseURL</key>
+	<string>$(SUPABASE_URL)</string>
 </dict>
 </plist>
