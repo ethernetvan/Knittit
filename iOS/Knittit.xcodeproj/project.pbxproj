@@ -69,6 +69,8 @@
 				Rock36Images/IMG_0118_C.HEIC,
 				Rock36Images/IMG_0121_C.HEIC,
 				Rock36Images/IMG_0124_C.HEIC,
+				shrug.usdz,
+				sweater.usdz,
 			);
 			target = CB595C713058509500A14FE2 /* KnittitUITests */;
 		};
