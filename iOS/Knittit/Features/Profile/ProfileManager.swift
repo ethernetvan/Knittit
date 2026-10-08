@@ -62,22 +62,45 @@ class ProfileManager: ObservableObject {
         return request
     }
     
+    private func performRequest<T: Decodable>(_ request: URLRequest) async throws -> T? {
+        var mutableRequest = request
+        do {
+            let (data, response) = try await URLSession.shared.data(for: mutableRequest)
+            guard let httpResponse = response as? HTTPURLResponse else { return nil }
+            if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
+                let refreshed = await SupabaseAuthManager.shared.refreshToken()
+                if refreshed, let token = UserDefaults.standard.string(forKey: "supabaseAccessToken") {
+                    mutableRequest.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+                    let (retryData, retryResponse) = try await URLSession.shared.data(for: mutableRequest)
+                    if let retryHttp = retryResponse as? HTTPURLResponse, retryHttp.statusCode == 200 {
+                        return try JSONDecoder().decode(T.self, from: retryData)
+                    } else if let retryHttp = retryResponse as? HTTPURLResponse, retryHttp.statusCode == 401 || retryHttp.statusCode == 403 {
+                        SupabaseAuthManager.shared.signOut()
+                        return nil
+                    }
+                } else {
+                    SupabaseAuthManager.shared.signOut()
+                    return nil
+                }
+            } else if httpResponse.statusCode == 200 {
+                return try JSONDecoder().decode(T.self, from: data)
+            }
+        } catch {
+            print("Request failed: \(error)")
+        }
+        return nil
+    }
+    
     /// Fetches a profile by user ID.
     func fetchProfile(userId: UUID) async -> UserProfile? {
         guard let url = URL(string: "\(supabaseURL)/rest/v1/profiles?id=eq.\(userId.uuidString.lowercased())&select=*") else {
             return nil
         }
-        
         let request = makeRequest(url: url)
         do {
-            let (data, response) = try await URLSession.shared.data(for: request)
-            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-                return nil
-            }
-            let profiles = try JSONDecoder().decode([UserProfile].self, from: data)
-            return profiles.first
+            let profiles: [UserProfile]? = try await performRequest(request)
+            return profiles?.first
         } catch {
-            print("Failed to fetch profile: \(error)")
             return nil
         }
     }
@@ -99,13 +122,9 @@ class ProfileManager: ObservableObject {
         let request = makeRequest(url: url)
         
         do {
-            let (data, response) = try await URLSession.shared.data(for: request)
-            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-                return []
-            }
-            return try JSONDecoder().decode([UserProfile].self, from: data)
+            let profiles: [UserProfile]? = try await performRequest(request)
+            return profiles ?? []
         } catch {
-            print("Failed to search profiles: \(error)")
             return []
         }
     }
@@ -118,14 +137,9 @@ class ProfileManager: ObservableObject {
         
         let request = makeRequest(url: url)
         do {
-            let (data, response) = try await URLSession.shared.data(for: request)
-            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-                return []
-            }
-            let remoteProjects = try JSONDecoder().decode([RemoteProjectResponse].self, from: data)
-            return remoteProjects.map { makeKnitProject(from: $0) }
+            let remoteProjects: [RemoteProjectResponse]? = try await performRequest(request)
+            return remoteProjects?.map { makeKnitProject(from: $0) } ?? []
         } catch {
-            print("Failed to fetch user projects: \(error)")
             return []
         }
     }

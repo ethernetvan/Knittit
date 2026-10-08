@@ -84,6 +84,7 @@ class SyncManager: ObservableObject {
                         result = await executeAction(action, userId: userId, context: modelContext, token: token)
                     } else {
                         logger.error("Token refresh failed. Aborting sync.")
+                        SupabaseAuthManager.shared.signOut()
                         break // Break out and stop if we are unauthorized and cannot refresh
                     }
                 }

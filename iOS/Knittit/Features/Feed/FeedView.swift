@@ -49,6 +49,26 @@ class FeedManager: ObservableObject {
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
             if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
+                if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
+                    // Try to refresh token
+                    let refreshed = await SupabaseAuthManager.shared.refreshToken()
+                    if refreshed, let token = UserDefaults.standard.string(forKey: "supabaseAccessToken") {
+                        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+                        let (retryData, retryResponse) = try await URLSession.shared.data(for: request)
+                        if let retryHttp = retryResponse as? HTTPURLResponse, retryHttp.statusCode != 200 {
+                            print("Failed to fetch feed on retry: HTTP \(retryHttp.statusCode)")
+                            if retryHttp.statusCode == 401 || retryHttp.statusCode == 403 {
+                                SupabaseAuthManager.shared.signOut()
+                            }
+                            return
+                        }
+                        let decoded = try JSONDecoder().decode([RemoteFeedItem].self, from: retryData)
+                        self.items = decoded
+                        return
+                    } else {
+                        SupabaseAuthManager.shared.signOut()
+                    }
+                }
                 print("Failed to fetch feed: HTTP \(httpResponse.statusCode)")
                 return
             }
