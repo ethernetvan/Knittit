@@ -12,7 +12,7 @@ import SwiftData
 struct KnittitApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            KnitProject.self,
+            KnitProject.self, ProjectVersion.self, SyncAction.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
@@ -25,7 +25,7 @@ struct KnittitApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView().onAppear { _ = SyncManager.shared }
         }
         .modelContainer(sharedModelContainer)
     }

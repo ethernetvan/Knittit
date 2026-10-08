@@ -49,6 +49,37 @@ class SupabaseAuthManager: ObservableObject {
         UserDefaults.standard.set(false, forKey: "isLoggedIn")
     }
     
+    func refreshToken() async -> Bool {
+        guard let refreshToken = UserDefaults.standard.string(forKey: "supabaseRefreshToken") else { return false }
+        guard let url = URL(string: "\(supabaseURL)/auth/v1/token?grant_type=refresh_token") else { return false }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(supabaseAnonKey, forHTTPHeaderField: "apikey")
+        
+        let body = ["refresh_token": refreshToken]
+        guard let httpBody = try? JSONEncoder().encode(body) else { return false }
+        request.httpBody = httpBody
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            if let httpRes = response as? HTTPURLResponse, httpRes.statusCode == 200 {
+                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let accToken = json["access_token"] as? String,
+                   let refToken = json["refresh_token"] as? String {
+                    UserDefaults.standard.set(accToken, forKey: "supabaseAccessToken")
+                    UserDefaults.standard.set(refToken, forKey: "supabaseRefreshToken")
+                    return true
+                }
+            } else {
+                // If it fails, sign out
+                signOut()
+            }
+        } catch {}
+        return false
+    }
+    
     func signIn(email: String, password: String) async -> Bool {
         isLoading = true
         errorMessage = nil

@@ -433,6 +433,13 @@ struct ProjectDetailView: View {
         tappedLocation = nil
         editingNoteID = nil
         updateNotes(for: version)
+        
+        let action = SyncAction(type: .updateNotes, entityId: version.id)
+        modelContext.insert(action)
+        try? modelContext.save()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            SyncManager.shared.triggerSync()
+        }
     }
     
     private func exportVideo() {
@@ -448,6 +455,7 @@ struct ProjectDetailView: View {
 struct EditProjectView: View {
     @Bindable var project: KnitProject
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
     
     var body: some View {
         NavigationStack {
@@ -461,7 +469,15 @@ struct EditProjectView: View {
             .navigationTitle("Edit Project")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { dismiss() }
+                    Button("Close") {
+                        let action = SyncAction(type: .uploadProject, entityId: project.id)
+                        modelContext.insert(action)
+                        try? modelContext.save()
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                            SyncManager.shared.triggerSync()
+                        }
+                        dismiss()
+                    }
                 }
             }
         }

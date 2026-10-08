@@ -49,6 +49,32 @@ struct LibraryGridView: View {
 struct ProjectThumbnail: View {
     let project: KnitProject
     @State private var thumbnailImage: UIImage?
+    @Query private var syncActions: [SyncAction]
+    
+    init(project: KnitProject) {
+        self.project = project
+        let pId = project.id
+        self._syncActions = Query(filter: #Predicate<SyncAction> { $0.entityId == pId })
+    }
+    
+    var syncStateIcon: some View {
+        let hasError = syncActions.contains { $0.status == "error" }
+        let hasPending = syncActions.contains { $0.status == "pending" }
+        
+        return ZStack {
+            if hasError {
+                Image(systemName: "exclamationmark.icloud.fill")
+                    .foregroundColor(.red)
+                    .background(Circle().fill(.white).padding(2))
+            } else if hasPending {
+                Image(systemName: "icloud.and.arrow.up.fill")
+                    .foregroundColor(.orange)
+                    .background(Circle().fill(.white).padding(2))
+            }
+        }
+        .font(.title2)
+        .padding(8)
+    }
     
     var body: some View {
         VStack(alignment: .leading) {
@@ -57,6 +83,7 @@ struct ProjectThumbnail: View {
                     .fill(Color.secondary.opacity(0.2))
                     .aspectRatio(1, contentMode: .fit)
                 
+                syncStateIcon.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing).zIndex(10)
                 if let urlString = getRemoteThumbnailURL(), let url = URL(string: urlString) {
                     AsyncImage(url: url) { phase in
                         if let image = phase.image {

@@ -125,6 +125,16 @@ struct NewProjectFromScanView: View {
                 newProject.versions.append(newVersion)
                 modelContext.insert(newProject)
                 
+                // Queue Sync Actions
+                let projSync = SyncAction(type: .uploadProject, entityId: newProject.id)
+                let versSync = SyncAction(type: .uploadVersion, entityId: newVersion.id)
+                modelContext.insert(projSync)
+                modelContext.insert(versSync)
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    SyncManager.shared.triggerSync()
+                }
+                
                 try? modelContext.save()
                 onSave(newProject)
             }
