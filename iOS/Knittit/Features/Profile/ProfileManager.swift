@@ -22,6 +22,7 @@ struct RemoteProjectResponse: Identifiable, Codable {
     let tool_size: String?
     let pattern_source: String?
     let color_palette: [String]?
+    let thumbnail_url: String?
     let created_at: String?
     let profiles: ProfileInfo?
     let project_versions: [VersionInfo]?
@@ -35,6 +36,7 @@ struct RemoteProjectResponse: Identifiable, Codable {
         let id: UUID?
         let progress_percentage: Int?
         let usdz_file_path: String?
+        let thumbnail_url: String?
     }
 }
 
@@ -111,7 +113,7 @@ class ProfileManager: ObservableObject {
     
     /// Fetches all remote projects belonging to a user ID.
     func fetchUserProjects(userId: UUID) async -> [KnitProject] {
-        guard let url = URL(string: "\(supabaseURL)/rest/v1/projects?user_id=eq.\(userId.uuidString.lowercased())&select=*,profiles(username,avatar_url),project_versions(id,progress_percentage,usdz_file_path)&order=created_at.desc") else {
+        guard let url = URL(string: "\(supabaseURL)/rest/v1/projects?user_id=eq.\(userId.uuidString.lowercased())&select=*,profiles(username,avatar_url),project_versions(id,progress_percentage,usdz_file_path,thumbnail_url)&order=created_at.desc") else {
             return []
         }
         
@@ -134,7 +136,8 @@ class ProfileManager: ObservableObject {
             title: item.title,
             yarnBrand: item.yarn_brand ?? "",
             toolSize: item.tool_size ?? "",
-            colorPalette: item.color_palette ?? []
+            colorPalette: item.color_palette ?? [],
+            thumbnailFilePath: item.thumbnail_url
         )
         
         if let versions = item.project_versions, !versions.isEmpty {
@@ -144,10 +147,17 @@ class ProfileManager: ObservableObject {
                 if !path.hasPrefix("http") && !path.hasPrefix("/") {
                     finalPath = "\(supabaseURL)/storage/v1/object/public/scans/\(path)"
                 }
+                
+                var thumbnailPath = item.thumbnail_url // Default to project thumbnail
+                if let vThumb = v.thumbnail_url {
+                     thumbnailPath = vThumb
+                }
+                
                 let version = ProjectVersion(
                     scanDate: Date(),
                     progressPercentage: v.progress_percentage ?? 100,
-                    usdzFilePath: finalPath
+                    usdzFilePath: finalPath,
+                    thumbnailFilePath: thumbnailPath
                 )
                 project.versions.append(version)
             }
@@ -155,7 +165,7 @@ class ProfileManager: ObservableObject {
         
         if project.versions.isEmpty {
             let fallbackMock = Bundle.main.url(forResource: "boxing_glove_realistic", withExtension: "usdz")?.path ?? ""
-            let version = ProjectVersion(scanDate: Date(), progressPercentage: 100, usdzFilePath: fallbackMock)
+            let version = ProjectVersion(scanDate: Date(), progressPercentage: 100, usdzFilePath: fallbackMock, thumbnailFilePath: item.thumbnail_url)
             project.versions.append(version)
         }
         

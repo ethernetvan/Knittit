@@ -28,6 +28,7 @@ CREATE TABLE public.projects (
     tool_size TEXT,
     pattern_source TEXT,
     color_palette TEXT[],
+    thumbnail_url TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -37,6 +38,7 @@ CREATE TABLE public.project_versions (
     project_id UUID REFERENCES public.projects(id) ON DELETE CASCADE NOT NULL,
     progress_percentage INTEGER CHECK (progress_percentage >= 0 AND progress_percentage <= 100),
     usdz_file_path TEXT,
+    thumbnail_url TEXT,
     spatial_notes JSONB,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
@@ -139,8 +141,6 @@ ON public.reports FOR SELECT TO authenticated USING (auth.uid() = reporter_id);
 INSERT INTO storage.buckets (id, name, public) 
 VALUES ('scans', 'scans', true)
 ON CONFLICT (id) DO NOTHING;
-
--- (Removed ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY; because migrations run as postgres which doesn't own this table. RLS is on by default.)
 
 -- Storage Policies for 'scans' bucket
 

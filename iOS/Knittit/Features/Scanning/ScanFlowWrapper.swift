@@ -49,6 +49,7 @@ struct NewProjectFromScanView: View {
     @State private var title = ""
     @State private var yarnBrand = ""
     @State private var toolSize = ""
+    @State private var isSaving = false
     
     var body: some View {
         Form {
@@ -71,10 +72,18 @@ struct NewProjectFromScanView: View {
                 }
             }
             
-            Button("Save Project to Library") {
-                saveProject()
+            Button(action: saveProject) {
+                if isSaving {
+                    HStack {
+                        Spacer()
+                        ProgressView()
+                        Spacer()
+                    }
+                } else {
+                    Text("Save Project to Library")
+                }
             }
-            .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .disabled(isSaving || title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
         .navigationTitle("New Project")
         .navigationBarTitleDisplayMode(.inline)
@@ -83,32 +92,43 @@ struct NewProjectFromScanView: View {
                 Button("Cancel") {
                     dismiss()
                 }
+                .disabled(isSaving)
             }
         }
     }
     
     private func saveProject() {
-        let newProject = KnitProject(title: title, yarnBrand: yarnBrand, toolSize: toolSize)
-        newProject.colorPalette = colors
-        
-        // Setup initial version
-        let newVersion = ProjectVersion(
-            scanDate: Date(),
-            progressPercentage: 100,
-            usdzFilePath: {
-                let docDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-                let fullPath = usdzURL.path
-                if fullPath.hasPrefix(docDir.path) {
-                    return String(fullPath.dropFirst(docDir.path.count + 1))
-                }
-                return usdzURL.lastPathComponent
-            }()
-        )
-        
-        newProject.versions.append(newVersion)
-        modelContext.insert(newProject)
-        
-        try? modelContext.save()
-        onSave(newProject)
+        isSaving = true
+        Task {
+            // Generate a thumbnail image and save it
+            let thumbnailPath = await ThumbnailManager.shared.generateAndSaveThumbnail(for: usdzURL)
+            
+            await MainActor.run {
+                let newProject = KnitProject(title: title, yarnBrand: yarnBrand, toolSize: toolSize)
+                newProject.colorPalette = colors
+                newProject.thumbnailFilePath = thumbnailPath // Set the thumbnail layout for the project
+                
+                // Setup initial version
+                let newVersion = ProjectVersion(
+                    scanDate: Date(),
+                    progressPercentage: 100,
+                    usdzFilePath: {
+                        let docDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+                        let fullPath = usdzURL.path
+                        if fullPath.hasPrefix(docDir.path) {
+                            return String(fullPath.dropFirst(docDir.path.count + 1))
+                        }
+                        return usdzURL.lastPathComponent
+                    }(),
+                    thumbnailFilePath: thumbnailPath // Explicitly store it per version as well
+                )
+                
+                newProject.versions.append(newVersion)
+                modelContext.insert(newProject)
+                
+                try? modelContext.save()
+                onSave(newProject)
+            }
+        }
     }
 }

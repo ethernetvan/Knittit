@@ -57,7 +57,23 @@ struct ProjectThumbnail: View {
                     .fill(Color.secondary.opacity(0.2))
                     .aspectRatio(1, contentMode: .fit)
                 
-                if let img = thumbnailImage {
+                if let urlString = getRemoteThumbnailURL(), let url = URL(string: urlString) {
+                    AsyncImage(url: url) { phase in
+                        if let image = phase.image {
+                            image
+                                .resizable()
+                                .scaledToFill()
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                .clipShape(RoundedRectangle(cornerRadius: 15))
+                        } else if phase.error != nil {
+                            Image(systemName: "photo")
+                                .font(.system(size: 40))
+                                .foregroundColor(.secondary)
+                        } else {
+                            ProgressView()
+                        }
+                    }
+                } else if let img = thumbnailImage {
                     Image(uiImage: img)
                         .resizable()
                         .scaledToFill()
@@ -97,10 +113,23 @@ struct ProjectThumbnail: View {
         .cornerRadius(20)
         .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: 2)
         .task {
+            // Check for local thumbnail image
             if let mostRecent = project.versions.max(by: { $0.scanDate < $1.scanDate }) {
                 thumbnailImage = await ThumbnailManager.shared.getThumbnail(for: mostRecent)
             }
         }
+    }
+    
+    private func getRemoteThumbnailURL() -> String? {
+        if let path = project.thumbnailFilePath, path.hasPrefix("http") {
+            return path
+        }
+        if let mostRecent = project.versions.max(by: { $0.scanDate < $1.scanDate }) {
+            if let path = mostRecent.thumbnailFilePath, path.hasPrefix("http") {
+                return path
+            }
+        }
+        return nil
     }
 }
 

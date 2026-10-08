@@ -220,7 +220,7 @@ struct ProfileView: View {
                 Spacer(minLength: 100)
             }
         }
-        .navigationBarHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
         .refreshable {
             await loadData()
         }
