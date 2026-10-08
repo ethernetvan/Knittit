@@ -29,7 +29,9 @@ class ThumbnailManager {
         }
         
         let size = CGSize(width: 300, height: 300)
-        let scale = UIScreen.main.scale
+        let scale = await MainActor.run {
+            (UIApplication.shared.connectedScenes.first as? UIWindowScene)?.screen.scale ?? 2.0
+        }
         
         let url: URL
         if version.usdzFilePath.hasPrefix("/") {
@@ -69,7 +71,9 @@ class ThumbnailManager {
     /// and returns the relative file path.
     func generateAndSaveThumbnail(for usdzURL: URL) async -> String? {
         let size = CGSize(width: 500, height: 500)
-        let scale = UIScreen.main.scale
+        let scale = await MainActor.run {
+            (UIApplication.shared.connectedScenes.first as? UIWindowScene)?.screen.scale ?? 2.0
+        }
         
         let request = QLThumbnailGenerator.Request(fileAt: usdzURL, size: size, scale: scale, representationTypes: .thumbnail)
         
