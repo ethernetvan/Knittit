@@ -24,6 +24,7 @@ import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import com.edanthom.knittit.Features.Login.AuthScreen
 import com.edanthom.knittit.Features.Profile.ProfileScreen
 import com.edanthom.knittit.Features.Search.UserSearchScreen
+import com.edanthom.knittit.Features.Feed.FeedScreen
 import com.edanthom.knittit.ui.theme.KnittitTheme
 import io.github.jan.supabase.auth.auth
 import kotlinx.coroutines.launch
@@ -48,7 +49,7 @@ fun KnittitApp() {
     if (!isLoggedIn) {
         AuthScreen(onLoginSuccess = { isLoggedIn = true })
     } else {
-        var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.HOME) }
+        var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.FEED) }
         var viewingUserId by rememberSaveable { mutableStateOf<String?>(null) }
         var isSearching by rememberSaveable { mutableStateOf(false) }
         val coroutineScope = rememberCoroutineScope()
@@ -87,11 +88,8 @@ fun KnittitApp() {
             ) {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     when (currentDestination) {
-                        AppDestinations.HOME -> {
-                            Greeting(
-                                name = "Home",
-                                modifier = Modifier.padding(innerPadding)
-                            )
+                        AppDestinations.FEED -> {
+                            FeedScreen()
                         }
                         AppDestinations.FAVORITES -> {
                             Greeting(
@@ -126,7 +124,7 @@ enum class AppDestinations(
     val label: String,
     val icon: Int,
 ) {
-    HOME("Home", R.drawable.ic_home),
+    FEED("Feed", R.drawable.ic_home),
     FAVORITES("Favorites", R.drawable.ic_favorite),
     PROFILE("Profile", R.drawable.ic_account_box),
 }
