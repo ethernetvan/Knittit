@@ -1,37 +1,31 @@
 import SwiftUI
 import SwiftData
 
+struct ScanResult: Identifiable {
+    let id = UUID()
+    let url: URL
+    let colors: [String]
+}
+
 struct ScanFlowWrapper: View {
     @Binding var selectedTab: Int
-    @State private var usdzURL: URL?
-    @State private var colors: [String] = []
-    @State private var isShowingSaveSheet = false
+    @State private var scanResult: ScanResult?
     
     var body: some View {
         NavigationStack {
             ScanningView { completedURL, extractedColors in
-                self.usdzURL = completedURL
-                self.colors = extractedColors
-                self.isShowingSaveSheet = true
+                self.scanResult = ScanResult(url: completedURL, colors: extractedColors)
             }
             .navigationTitle("Scan")
             .navigationBarTitleDisplayMode(.inline)
         }
-        .sheet(isPresented: $isShowingSaveSheet, onDismiss: {
-            // Reset state when sheet is dismissed/pulled down without saving
-            self.usdzURL = nil
-            self.colors = []
-        }) {
-            if let usdzURL = usdzURL {
-                NavigationStack {
-                    NewProjectFromScanView(usdzURL: usdzURL, colors: colors) { newProject in
-                        // Reset state
-                        self.isShowingSaveSheet = false
-                        self.usdzURL = nil
-                        self.colors = []
-                        // Switch to library tab
-                        selectedTab = 2
-                    }
+        .sheet(item: $scanResult, onDismiss: {
+            self.scanResult = nil
+        }) { result in
+            NavigationStack {
+                NewProjectFromScanView(usdzURL: result.url, colors: result.colors) { newProject in
+                    self.scanResult = nil
+                    selectedTab = 2
                 }
             }
         }
