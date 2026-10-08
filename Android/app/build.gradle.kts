@@ -53,6 +53,14 @@ dependencies {
     implementation(libs.supabase.auth)
     implementation(libs.ktor.client.android)
     implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.serialization.json)
+    
+    // Coil
+    implementation(libs.coil.compose)
+    
+    // Lifecycle and Icons
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.compose.material.iconsExtended)
 
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
