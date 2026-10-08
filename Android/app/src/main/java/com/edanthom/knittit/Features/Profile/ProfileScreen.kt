@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -67,19 +68,25 @@ fun ProfileScreen(
         floatingActionButtonPosition = FabPosition.End
     ) { innerPadding ->
         Box(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
-            if (uiState.isLoading) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            } else if (uiState.error != null) {
-                Text(
-                    text = uiState.error!!,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.align(Alignment.Center)
-                )
-            } else if (uiState.profile != null) {
-                Column(modifier = Modifier.fillMaxSize()) {
-                    ProfileHeader(profile = uiState.profile!!)
-                    Spacer(modifier = Modifier.height(16.dp))
-                    ProjectsGrid(projects = uiState.projects)
+            PullToRefreshBox(
+                isRefreshing = uiState.isLoading,
+                onRefresh = { viewModel.loadProfileData(userId) },
+                modifier = Modifier.fillMaxSize()
+            ) {
+                if (uiState.isLoading && uiState.profile == null) {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                } else if (uiState.error != null && uiState.profile == null) {
+                    Text(
+                        text = uiState.error!!,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                } else if (uiState.profile != null) {
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        ProfileHeader(profile = uiState.profile!!)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        ProjectsGrid(projects = uiState.projects)
+                    }
                 }
             }
         }

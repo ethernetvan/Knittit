@@ -25,6 +25,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -44,22 +45,28 @@ fun FeedScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    if (uiState.isLoading) {
+    if (uiState.isLoading && uiState.feedItems.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
-    } else if (uiState.error != null) {
+    } else if (uiState.error != null && uiState.feedItems.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(text = uiState.error!!, color = MaterialTheme.colorScheme.error)
         }
     } else {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp)
+        PullToRefreshBox(
+            isRefreshing = uiState.isLoading,
+            onRefresh = { viewModel.loadFeed() },
+            modifier = Modifier.fillMaxSize()
         ) {
-            items(uiState.feedItems) { feedItem ->
-                FeedItemCard(feedItem = feedItem)
-                Spacer(modifier = Modifier.height(16.dp))
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp)
+            ) {
+                items(uiState.feedItems) { feedItem ->
+                    FeedItemCard(feedItem = feedItem)
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
             }
         }
     }
