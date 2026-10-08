@@ -124,11 +124,6 @@ struct ProjectThumbnail: View {
         if let path = project.thumbnailFilePath, path.hasPrefix("http") {
             return path
         }
-        if let mostRecent = project.versions.max(by: { $0.scanDate < $1.scanDate }) {
-            if let path = mostRecent.thumbnailFilePath, path.hasPrefix("http") {
-                return path
-            }
-        }
         return nil
     }
 }

@@ -6,7 +6,8 @@ struct RemoteFeedItem: Identifiable, Codable {
     let title: String
     let yarn_brand: String?
     let thumbnail_url: String?
-    let user_id: UUID
+
+        let user_id: UUID
     let profiles: UserProfile?
     let project_versions: [ProjectVersionRemote]
     
@@ -17,8 +18,7 @@ struct RemoteFeedItem: Identifiable, Codable {
     
     struct ProjectVersionRemote: Codable {
         let usdz_file_path: String?
-        let thumbnail_url: String?
-    }
+            }
 }
 
 class FeedManager: ObservableObject {
@@ -33,7 +33,7 @@ class FeedManager: ObservableObject {
         let supabaseURL = "https://nidglxalnqgqibssjmol.supabase.co"
         let supabaseAnonKey = "sb_publishable_WHauEzUFRqivBDGCFH42Qw_q-fvSwrB"
         
-        guard let url = URL(string: "\(supabaseURL)/rest/v1/projects?select=*,profiles(username,avatar_url),project_versions(usdz_file_path,thumbnail_url)&order=created_at.desc") else { return }
+        guard let url = URL(string: "\(supabaseURL)/rest/v1/projects?select=*,profiles(username,avatar_url),project_versions(usdz_file_path)&order=created_at.desc") else { return }
         
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
@@ -72,16 +72,11 @@ class FeedManager: ObservableObject {
                 finalPath = "https://nidglxalnqgqibssjmol.supabase.co/storage/v1/object/public/scans/\(path)"
             }
             
-            var thumbnailPath = item.thumbnail_url
-            if let vThumb = firstVersion.thumbnail_url {
-                 thumbnailPath = vThumb
-            }
-            
-            let version = ProjectVersion(scanDate: Date(), progressPercentage: 100, usdzFilePath: finalPath, thumbnailFilePath: thumbnailPath)
+            let version = ProjectVersion(scanDate: Date(), progressPercentage: 100, usdzFilePath: finalPath)
             p.versions.append(version)
         } else {
             let fallbackMock = Bundle.main.url(forResource: "boxing_glove_realistic", withExtension: "usdz")?.path ?? ""
-            let version = ProjectVersion(scanDate: Date(), progressPercentage: 100, usdzFilePath: fallbackMock, thumbnailFilePath: item.thumbnail_url)
+            let version = ProjectVersion(scanDate: Date(), progressPercentage: 100, usdzFilePath: fallbackMock)
             p.versions.append(version)
         }
         

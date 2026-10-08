@@ -38,7 +38,6 @@ CREATE TABLE public.project_versions (
     project_id UUID REFERENCES public.projects(id) ON DELETE CASCADE NOT NULL,
     progress_percentage INTEGER CHECK (progress_percentage >= 0 AND progress_percentage <= 100),
     usdz_file_path TEXT,
-    thumbnail_url TEXT,
     spatial_notes JSONB,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );

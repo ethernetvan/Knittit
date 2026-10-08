@@ -119,8 +119,7 @@ struct NewProjectFromScanView: View {
                             return String(fullPath.dropFirst(docDir.path.count + 1))
                         }
                         return usdzURL.lastPathComponent
-                    }(),
-                    thumbnailFilePath: thumbnailPath // Explicitly store it per version as well
+                    }()
                 )
                 
                 newProject.versions.append(newVersion)

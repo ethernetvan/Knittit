@@ -11,7 +11,7 @@ class ThumbnailManager {
     
     func getThumbnail(for version: ProjectVersion) async -> UIImage? {
         // If there's a pre-rendered thumbnail, try to load it first
-        if let thumbPath = version.thumbnailFilePath, !thumbPath.isEmpty {
+        if let thumbPath = version.project?.thumbnailFilePath, !thumbPath.isEmpty {
             if thumbPath.hasPrefix("http") {
                 // If it's remote, handle asynchronously or just let UI handle it with AsyncImage
                 // Returning nil means the UI might want to load it themselves or fallback
