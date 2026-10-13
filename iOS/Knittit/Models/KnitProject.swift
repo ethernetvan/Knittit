@@ -13,7 +13,8 @@ final class KnitProject {
     @Relationship(deleteRule: .cascade, inverse: \ProjectVersion.project)
     var versions: [ProjectVersion]
     
-    init(title: String, yarnBrand: String, toolSize: String, colorPalette: [String] = [], versions: [ProjectVersion] = [], thumbnailFilePath: String? = nil) {
+    init(id: UUID = UUID(), title: String, yarnBrand: String, toolSize: String, colorPalette: [String] = [], versions: [ProjectVersion] = [], thumbnailFilePath: String? = nil) {
+        self.id = id
         self.title = title
         self.yarnBrand = yarnBrand
         self.toolSize = toolSize

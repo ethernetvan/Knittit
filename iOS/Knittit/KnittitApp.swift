@@ -25,7 +25,9 @@ struct KnittitApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView().onAppear { _ = SyncManager.shared }
+            ContentView().onAppear {
+                SyncManager.shared.modelContainer = sharedModelContainer
+            }
         }
         .modelContainer(sharedModelContainer)
     }

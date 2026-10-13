@@ -250,6 +250,7 @@ class ProfileManager: ObservableObject {
     
     private func makeKnitProject(from item: RemoteProjectResponse) -> KnitProject {
         let project = KnitProject(
+            id: item.id,
             title: item.title,
             yarnBrand: item.yarn_brand ?? "",
             toolSize: item.tool_size ?? "",

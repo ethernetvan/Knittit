@@ -80,7 +80,7 @@ class FeedManager: ObservableObject {
     }
     
     func tryCreateProject(from item: RemoteFeedItem) -> KnitProject {
-        let p = KnitProject(title: item.title, yarnBrand: item.yarn_brand ?? "", toolSize: "")
+        let p = KnitProject(id: item.id, title: item.title, yarnBrand: item.yarn_brand ?? "", toolSize: "")
         
         if let thumb = item.thumbnail_url {
             p.thumbnailFilePath = thumb

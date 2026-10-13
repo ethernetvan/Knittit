@@ -58,10 +58,10 @@ struct ProfileView: View {
         if isCurrentUser {
             // Include local projects
             var combined: [KnitProject] = localProjects
-            let localTitles = Set(localProjects.map { $0.title.lowercased() })
-            // Append remote projects that don't already exist locally by title
+            let localIds = Set(localProjects.map { $0.id })
+            // Append remote projects that don't already exist locally by ID
             for remote in remoteProjects {
-                if !localTitles.contains(remote.title.lowercased()) {
+                if !localIds.contains(remote.id) {
                     combined.append(remote)
                 }
             }

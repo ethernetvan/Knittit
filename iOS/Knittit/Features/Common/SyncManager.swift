@@ -18,6 +18,7 @@ class SyncManager: ObservableObject {
     private let monitor = NWPathMonitor()
     private let monitorQueue = DispatchQueue(label: "NetworkMonitor")
     @Published var isOnline: Bool = true
+    var modelContainer: ModelContainer?
     
     let supabaseURL = SupabaseAuthManager.shared.supabaseURL
     let apikey = SupabaseAuthManager.shared.supabaseAnonKey
@@ -57,8 +58,14 @@ class SyncManager: ObservableObject {
             return
         }
         
-        let container = try? ModelContainer(for: SyncAction.self, KnitProject.self, ProjectVersion.self)
-        guard let modelContext = container?.mainContext else { return }
+        let modelContext: ModelContext
+        if let sharedContext = modelContainer?.mainContext {
+            modelContext = sharedContext
+        } else if let container = try? ModelContainer(for: SyncAction.self, KnitProject.self, ProjectVersion.self) {
+            modelContext = container.mainContext
+        } else {
+            return
+        }
         
         // Fetch all pending or errored actions
         let fetchDescriptor = FetchDescriptor<SyncAction>(
@@ -118,30 +125,80 @@ class SyncManager: ObservableObject {
     
     // MARK: - Handlers
     
+    @discardableResult
+    func updateProjectDetailsDirectly(project: KnitProject) async -> Bool {
+        var token = UserDefaults.standard.string(forKey: "supabaseAccessToken") ?? ""
+        if token.isEmpty { return false }
+        
+        let success = await patchProjectDetails(project: project, token: token)
+        if !success {
+            // Attempt token refresh
+            let refreshed = await SupabaseAuthManager.shared.refreshToken()
+            if refreshed {
+                token = UserDefaults.standard.string(forKey: "supabaseAccessToken") ?? ""
+                return await patchProjectDetails(project: project, token: token)
+            }
+        }
+        return success
+    }
+    
+    private func patchProjectDetails(project: KnitProject, token: String) async -> Bool {
+        guard let url = URL(string: "\(supabaseURL)/rest/v1/projects?id=eq.\(project.id.uuidString.lowercased())") else { return false }
+        var req = URLRequest(url: url)
+        req.httpMethod = "PATCH"
+        req.setValue(apikey, forHTTPHeaderField: "apikey")
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let payload: [String: Any] = [
+            "title": project.title,
+            "yarn_brand": project.yarnBrand,
+            "tool_size": project.toolSize
+        ]
+        
+        guard let body = try? JSONSerialization.data(withJSONObject: payload) else { return false }
+        req.httpBody = body
+        
+        do {
+            let (data, res) = try await URLSession.shared.data(for: req)
+            if let httpRes = res as? HTTPURLResponse {
+                if httpRes.statusCode < 300 {
+                    return true
+                }
+                let errString = String(data: data, encoding: .utf8) ?? ""
+                logger.error("PATCH project failed: \(httpRes.statusCode) - \(errString)")
+            }
+            return false
+        } catch {
+            return false
+        }
+    }
+
     private func handleUploadProject(action: SyncAction, userId: UUID, context: ModelContext, token: String) async -> SyncResult {
         let projectId = action.entityId
         let desc = FetchDescriptor<KnitProject>(predicate: #Predicate { $0.id == projectId })
         guard let project = try? context.fetch(desc).first else { return .success }
 
-        var thumbnailUrl: String? = nil
-        if let localThumb = project.thumbnailFilePath {
+        var thumbnailUrl: String? = project.thumbnailFilePath
+        if let localThumb = project.thumbnailFilePath, !localThumb.starts(with: "http") {
             let fileURL = AppFolder.documentDirectory.appendingPathComponent(localThumb)
             if FileManager.default.fileExists(atPath: fileURL.path) {
                 let objectPath = "\(userId.uuidString)/\(project.id.uuidString)_thumbnail.jpg"
                 let uploadResult = await uploadStorageData(fileURL: fileURL, bucket: "scans", objectPath: objectPath, contentType: "image/jpeg", token: token)
                 if uploadResult == .success {
-                    thumbnailUrl = "\(supabaseURL)/storage/v1/object/public/scans/\(objectPath)"
+                    let remoteUrl = "\(supabaseURL)/storage/v1/object/public/scans/\(objectPath)"
+                    thumbnailUrl = remoteUrl
+                    project.thumbnailFilePath = remoteUrl
+                    try? context.save()
                 } else if uploadResult == .unauthorized {
                     return .unauthorized
                 }
-            } else if localThumb.starts(with: "http") {
-                thumbnailUrl = localThumb
             }
         }
         
         let payload: [String: Any] = [
-            "id": project.id.uuidString,
-            "user_id": userId.uuidString,
+            "id": project.id.uuidString.lowercased(),
+            "user_id": userId.uuidString.lowercased(),
             "title": project.title,
             "yarn_brand": project.yarnBrand,
             "tool_size": project.toolSize,
@@ -221,7 +278,7 @@ class SyncManager: ObservableObject {
     // MARK: - Networking Utilities
     
     private func upsertRow(table: String, payload: [String: Any], token: String) async -> SyncResult {
-        guard let url = URL(string: "\(supabaseURL)/rest/v1/\(table)") else { return .failed }
+        guard let url = URL(string: "\(supabaseURL)/rest/v1/\(table)?on_conflict=id") else { return .failed }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue(apikey, forHTTPHeaderField: "apikey")

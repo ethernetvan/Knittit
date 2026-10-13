@@ -437,9 +437,7 @@ struct ProjectDetailView: View {
         let action = SyncAction(type: .updateNotes, entityId: version.id)
         modelContext.insert(action)
         try? modelContext.save()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            SyncManager.shared.triggerSync()
-        }
+        SyncManager.shared.triggerSync()
     }
     
     private func exportVideo() {
@@ -457,29 +455,67 @@ struct EditProjectView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     
+    @State private var title: String = ""
+    @State private var yarnBrand: String = ""
+    @State private var toolSize: String = ""
+    @State private var isSaving: Bool = false
+    
     var body: some View {
         NavigationStack {
             Form {
                 Section(header: Text("Project Details")) {
-                    TextField("Title", text: $project.title)
-                    TextField("Yarn Brand", text: $project.yarnBrand)
-                    TextField("Tool Size (e.g. US 8)", text: $project.toolSize)
+                    TextField("Title", text: $title)
+                    TextField("Yarn Brand", text: $yarnBrand)
+                    TextField("Tool Size (e.g. US 8)", text: $toolSize)
                 }
             }
             .navigationTitle("Edit Project")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") {
-                        let action = SyncAction(type: .uploadProject, entityId: project.id)
-                        modelContext.insert(action)
-                        try? modelContext.save()
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                            SyncManager.shared.triggerSync()
-                        }
+                    Button("Cancel") {
                         dismiss()
                     }
+                    .disabled(isSaving)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        saveChanges()
+                    }
+                    .disabled(isSaving || title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
+            .onAppear {
+                title = project.title
+                yarnBrand = project.yarnBrand
+                toolSize = project.toolSize
+            }
         }
+    }
+    
+    private func saveChanges() {
+        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedYarn = yarnBrand.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedTool = toolSize.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        project.title = trimmedTitle
+        project.yarnBrand = trimmedYarn
+        project.toolSize = trimmedTool
+        
+        if project.modelContext == nil {
+            modelContext.insert(project)
+        }
+        try? modelContext.save()
+        
+        let action = SyncAction(type: .uploadProject, entityId: project.id)
+        modelContext.insert(action)
+        try? modelContext.save()
+        
+        Task {
+            _ = await SyncManager.shared.updateProjectDetailsDirectly(project: project)
+            SyncManager.shared.triggerSync()
+        }
+        
+        dismiss()
     }
 }
