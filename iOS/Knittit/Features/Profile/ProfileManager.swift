@@ -14,6 +14,29 @@ struct UserProfile: Identifiable, Codable, Hashable {
     let created_at: String?
 }
 
+enum ProfileError: LocalizedError, Equatable {
+    case emptyUsername
+    case usernameTaken
+    case serverError(String)
+    case notAuthenticated
+    case unknown
+    
+    var errorDescription: String? {
+        switch self {
+        case .emptyUsername:
+            return "Username cannot be empty."
+        case .usernameTaken:
+            return "This username is already taken. Please choose another."
+        case .serverError(let message):
+            return message
+        case .notAuthenticated:
+            return "You must be signed in to change your username."
+        case .unknown:
+            return "An unexpected error occurred. Please try again."
+        }
+    }
+}
+
 struct RemoteProjectResponse: Identifiable, Codable {
     let id: UUID
     let user_id: UUID
@@ -102,6 +125,87 @@ class ProfileManager: ObservableObject {
             return profiles?.first
         } catch {
             return nil
+        }
+    }
+    
+    /// Updates the username for a user.
+    func updateUsername(userId: UUID, newUsername: String) async -> Result<UserProfile, Error> {
+        let trimmed = newUsername.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            return .failure(ProfileError.emptyUsername)
+        }
+        
+        guard let url = URL(string: "\(supabaseURL)/rest/v1/profiles") else {
+            return .failure(ProfileError.unknown)
+        }
+        
+        let payload: [String: Any] = [
+            "id": userId.uuidString.lowercased(),
+            "username": trimmed
+        ]
+        
+        guard let body = try? JSONSerialization.data(withJSONObject: payload) else {
+            return .failure(ProfileError.unknown)
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(supabaseAnonKey, forHTTPHeaderField: "apikey")
+        request.setValue("resolution=merge-duplicates,return=representation", forHTTPHeaderField: "Prefer")
+        request.httpBody = body
+        
+        if let token = UserDefaults.standard.string(forKey: "supabaseAccessToken") {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        } else {
+            request.setValue("Bearer \(supabaseAnonKey)", forHTTPHeaderField: "Authorization")
+        }
+        
+        do {
+            var (data, response) = try await URLSession.shared.data(for: request)
+            var httpResponse = response as? HTTPURLResponse
+            
+            if httpResponse?.statusCode == 401 || httpResponse?.statusCode == 403 {
+                let refreshed = await SupabaseAuthManager.shared.refreshToken()
+                if refreshed, let token = UserDefaults.standard.string(forKey: "supabaseAccessToken") {
+                    request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+                    let (retryData, retryResponse) = try await URLSession.shared.data(for: request)
+                    data = retryData
+                    httpResponse = retryResponse as? HTTPURLResponse
+                } else {
+                    SupabaseAuthManager.shared.signOut()
+                    return .failure(ProfileError.notAuthenticated)
+                }
+            }
+            
+            guard let statusCode = httpResponse?.statusCode else {
+                return .failure(ProfileError.unknown)
+            }
+            
+            if statusCode >= 200 && statusCode < 300 {
+                let profiles = try JSONDecoder().decode([UserProfile].self, from: data)
+                if let updated = profiles.first {
+                    return .success(updated)
+                }
+                if let fetched = await fetchProfile(userId: userId) {
+                    return .success(fetched)
+                }
+                return .failure(ProfileError.unknown)
+            } else if statusCode == 409 {
+                return .failure(ProfileError.usernameTaken)
+            } else {
+                let responseString = String(data: data, encoding: .utf8) ?? ""
+                if responseString.contains("23505") || responseString.lowercased().contains("unique") || responseString.lowercased().contains("already exists") {
+                    return .failure(ProfileError.usernameTaken)
+                }
+                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let message = json["message"] as? String {
+                    return .failure(ProfileError.serverError(message))
+                }
+                return .failure(ProfileError.serverError("Failed to update username (Status \(statusCode))"))
+            }
+        } catch {
+            return .failure(error)
         }
     }
     

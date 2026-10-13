@@ -20,6 +20,11 @@ struct ProfileView: View {
     @State private var isLoading: Bool = false
     @State private var showSearch: Bool = false
     @State private var showSignOutConfirmation: Bool = false
+    @State private var showChangeUsernameAlert: Bool = false
+    @State private var newUsername: String = ""
+    @State private var isUpdatingUsername: Bool = false
+    @State private var errorMessage: String?
+    @State private var showErrorAlert: Bool = false
     
     private var resolvedUserId: UUID? {
         if let target = targetUserId {
@@ -68,12 +73,29 @@ struct ProfileView: View {
     }
     
     var body: some View {
-        if isTabRoot {
-            NavigationStack {
+        Group {
+            if isTabRoot {
+                NavigationStack {
+                    contentView
+                }
+            } else {
                 contentView
             }
-        } else {
-            contentView
+        }
+        .overlay {
+            if isUpdatingUsername {
+                ZStack {
+                    Color.black.opacity(0.2)
+                        .ignoresSafeArea()
+                    ProgressView("Updating username...")
+                        .padding(16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color(uiColor: .systemBackground))
+                                .shadow(color: .black.opacity(0.15), radius: 10)
+                        )
+                }
+            }
         }
     }
     
@@ -106,9 +128,20 @@ struct ProfileView: View {
                         
                         // Settings / Cog floating button (shown on own profile)
                         if isCurrentUser {
-                            Button(action: {
-                                showSignOutConfirmation = true
-                            }) {
+                            Menu {
+                                Button {
+                                    newUsername = profile?.username ?? (displayName.starts(with: "User ") ? "" : displayName)
+                                    showChangeUsernameAlert = true
+                                } label: {
+                                    Label("Change Username", systemImage: "pencil")
+                                }
+                                
+                                Button(role: .destructive) {
+                                    showSignOutConfirmation = true
+                                } label: {
+                                    Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
+                                }
+                            } label: {
                                 Image(systemName: "gearshape")
                                     .font(.system(size: 20, weight: .semibold))
                                     .foregroundColor(.primary)
@@ -241,6 +274,61 @@ struct ProfileView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("Are you sure you want to sign out?")
+        }
+        .alert("Change Username", isPresented: $showChangeUsernameAlert) {
+            TextField("New username", text: $newUsername)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+            Button("Cancel", role: .cancel) {}
+            Button("Save") {
+                Task {
+                    await saveUsername()
+                }
+            }
+        } message: {
+            Text("Enter your new username.")
+        }
+        .alert("Unable to Update Username", isPresented: $showErrorAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            if let errorMessage {
+                Text(errorMessage)
+            }
+        }
+    }
+    
+    private func saveUsername() async {
+        let trimmed = newUsername.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            errorMessage = "Username cannot be empty."
+            showErrorAlert = true
+            return
+        }
+        
+        if let current = profile?.username, current == trimmed {
+            return
+        }
+        
+        isUpdatingUsername = true
+        defer { isUpdatingUsername = false }
+        
+        if let userId = resolvedUserId {
+            let result = await ProfileManager.shared.updateUsername(userId: userId, newUsername: trimmed)
+            switch result {
+            case .success(let updated):
+                self.profile = updated
+            case .failure(let error):
+                self.errorMessage = error.localizedDescription
+                self.showErrorAlert = true
+            }
+        } else {
+            self.profile = UserProfile(
+                id: UUID(),
+                username: trimmed,
+                bio: profile?.bio,
+                avatar_url: profile?.avatar_url,
+                created_at: profile?.created_at
+            )
         }
     }
     
