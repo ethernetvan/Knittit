@@ -5,8 +5,9 @@ knit and crochet projects. It combines SwiftUI and SwiftData for the app
 experience with Apple's RealityKit Object Capture and Photogrammetry APIs to
 turn a supported device's camera and LiDAR capture into a USDZ model.
 
-![3D model viewer](media/3dview.gif)
-
+| 3D model viewer | Knittit feed |
+| --- | --- |
+| <img src="media/3dview.gif" alt="3D model viewer" width="160" height="348"> | <img src="media/feed.PNG" alt="Knittit feed" width="160" height="348"> |
 
 ## Why Knittit?
 
@@ -27,11 +28,11 @@ those details together with the project record:
 - **Synchronize in the background** when connectivity returns, including
   project records, scan versions, notes, thumbnails, and USDZ files.
 
-### App preview
+### Misc. Screenshots
 
-![Knittit feed](media/feed.png)
-
-![Sign-in screen](media/login.PNG)
+| App demo | Sign-in screen |
+| --- | --- |
+| <img src="media/demo.gif" alt="App demo" width="160" height="348"> | <img src="media/login.PNG" alt="Sign-in screen" width="160" height="348"> |
 
 ## Getting started
 
